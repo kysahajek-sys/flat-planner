@@ -1,0 +1,3899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b2126">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Flat Planner</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231b2126'/%3E%3Crect x='6' y='7' width='20' height='18' fill='none' stroke='%23eceee7' stroke-width='2.5'/%3E%3Crect x='9' y='10' width='7' height='6' fill='%23f0a02c'/%3E%3C/svg%3E">
+</head>
+<body>
+<style>
+  :root{
+    --ink:#12161a;
+    --panel:#1b2126;
+    --panel-2:#232b31;
+    --line:#333d45;
+    --line-hi:#4b5a64;
+    --text:#e7ece9;
+    --muted:#8fa0a8;
+    --field:#161c21;
+    --void:#0e1114;
+    --overlay:rgba(18,22,26,.86);
+    --hover:#2f3a42;
+    --row-head:#1a2126;
+    --row-sub:#171e23;
+    --row-line:#222a30;
+    --scrim:rgba(8,10,12,.72);
+    --chip:rgba(0,0,0,.25);
+    --accent-ink:#f0a02c;
+    --paper:#eceee7;
+    --grid:#d3d8cd;
+    --grid-major:#bcc3b5;
+    --wall:#1a1f24;
+    --accent:#f0a02c;
+    --accent-2:#2f7de1;
+    --danger:#e05c4b;
+  }
+  body.light{
+    --ink:#eceee8;
+    --panel:#f8f9f5;
+    --panel-2:#ffffff;
+    --line:#d2d6cb;
+    --line-hi:#a9b1a3;
+    --text:#1a2024;
+    --muted:#6c7680;
+    --field:#ffffff;
+    --void:#dcdfd7;
+    --overlay:rgba(255,255,255,.9);
+    --hover:#e6e9e0;
+    --row-head:#eef0e9;
+    --row-sub:#f2f4ee;
+    --row-line:#e2e5dd;
+    --scrim:rgba(60,66,60,.35);
+    --chip:rgba(0,0,0,.08);
+    --accent:#c07c10;
+    --accent-ink:#8a5a08;
+    --accent-2:#1f5fbf;
+    --danger:#c0392b;
+  }
+  body.light .brand span{color:var(--accent)}
+  body.light button.on{color:#fff}
+  body.light #mbody a.dl{color:#fff}
+  body.light .toast{color:#fff}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--ink);color:var(--text);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:13px;display:flex;flex-direction:column;overflow:hidden;
+  }
+  .bar{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);
+  }
+  .brand{font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:12px;margin-right:6px}
+  .brand span{color:var(--accent)}
+  .sep{width:1px;height:22px;background:var(--line);margin:0 2px}
+  button,select,input{font:inherit;color:var(--text)}
+  button{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:7px;
+    padding:6px 10px;cursor:pointer;white-space:nowrap;
+  }
+  button:hover{border-color:var(--line-hi)}
+  button.on{background:var(--accent);border-color:var(--accent);color:#20160a;font-weight:600}
+  button.ghost{background:transparent}
+  button.danger:hover{border-color:var(--danger);color:var(--danger)}
+  input,select{background:var(--field);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+  input:focus,select:focus{outline:2px solid var(--accent-2);outline-offset:-1px}
+  .modal{
+    display:none;position:fixed;inset:0;z-index:200;background:var(--scrim);
+    align-items:center;justify-content:center;padding:20px;
+  }
+  .modal.open{display:flex}
+  .mbox{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    width:min(760px,100%);max-height:86vh;display:flex;flex-direction:column;overflow:hidden;
+  }
+  .mhead{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:12px 14px;border-bottom:1px solid var(--line);
+  }
+  .mhead b{font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+  #mbody{padding:14px;overflow:auto;display:flex;flex-direction:column;gap:10px}
+  #mbody textarea{
+    width:100%;min-height:220px;background:var(--field);border:1px solid var(--line);border-radius:8px;
+    color:var(--text);font-family:ui-monospace,Menlo,monospace;font-size:11px;padding:10px;resize:vertical;
+  }
+  #mbody .hintline{color:var(--muted);font-size:12px;line-height:1.6}
+  #mbody a.dl{
+    display:inline-block;padding:8px 14px;border-radius:8px;background:var(--accent);color:#20160a;
+    font-weight:700;text-decoration:none;font-size:12px;
+  }
+  #printArea{display:none}
+  @media print{
+    @page{ size:A4; margin:14mm; }
+    body{background:#fff;color:#111;display:block;overflow:visible}
+    body > *{display:none !important}
+    body > #printArea{display:block !important}
+    #printArea{font:12px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#111}
+    #printArea .sheet-break{break-before:page}
+    #printArea h1{font-size:19px;margin:0 0 2px;letter-spacing:.02em}
+    #printArea h2{font-size:13px;margin:18px 0 6px;letter-spacing:.14em;text-transform:uppercase;color:#555;
+                  border-bottom:1px solid #bbb;padding-bottom:3px}
+    #printArea .title{display:flex;justify-content:space-between;align-items:flex-end;
+                      border-bottom:2px solid #111;padding-bottom:6px;margin-bottom:12px}
+    #printArea .meta{font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#555;text-align:right;line-height:1.6}
+    #printArea img.plan{width:100%;border:1px solid #999;margin-bottom:6px}
+    #printArea table{width:100%;border-collapse:collapse;font-size:11px}
+    #printArea th{text-align:left;border-bottom:1px solid #999;padding:4px 6px;font-size:9px;
+                  letter-spacing:.1em;text-transform:uppercase;color:#555}
+    #printArea td{padding:3px 6px;border-bottom:1px solid #e3e3e3;vertical-align:top}
+    #printArea tr.grp td{background:#f0f0ec;font-weight:700;font-size:10px;
+                         letter-spacing:.08em;text-transform:uppercase}
+    #printArea tr.sum td{font-weight:700;border-top:1px solid #999}
+    #printArea td.num,#printArea th.num{text-align:right;font-family:ui-monospace,Menlo,monospace}
+    #printArea .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:10px;color:#444;margin-bottom:8px}
+    #printArea .legend span{display:flex;align-items:center;gap:4px}
+    #printArea .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+    #printArea .foot{margin-top:14px;font-size:9px;color:#888;border-top:1px solid #ddd;padding-top:5px}
+  }
+  .tabs{
+    display:flex;align-items:center;gap:6px;padding:6px 12px 0;
+    background:var(--panel);border-bottom:1px solid var(--line);
+  }
+  .tab{
+    background:transparent;border:1px solid transparent;border-bottom:0;
+    border-radius:8px 8px 0 0;padding:8px 16px;color:var(--muted);
+    font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;
+    position:relative;top:1px;
+  }
+  .tab:hover{color:var(--text);border-color:transparent}
+  .tab.active{
+    background:var(--ink);border-color:var(--line);color:var(--text);
+    box-shadow:inset 0 2px 0 var(--accent);
+  }
+  .tabhint{color:var(--muted);font-size:11px;padding-right:4px}
+  .sheet{display:none;flex:1;min-height:0;flex-direction:column;background:var(--ink)}
+  body.light #sheetTable tr.job td:first-child input{color:var(--text)}
+  .sheet.open{display:flex}
+  .sheetbar{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line);
+  }
+  .chk{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+  .chk input[type=checkbox]{width:auto}
+  .totals{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted)}
+  .totals b{color:var(--accent)}
+  .sheetbody{flex:1;overflow:auto;padding:14px}
+  #sheetTable{border-collapse:collapse;width:100%;font-size:12px}
+  #sheetTable th{
+    position:sticky;top:0;background:var(--panel);z-index:1;
+    text-align:left;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+    padding:8px 6px;border-bottom:1px solid var(--line);font-weight:600;
+  }
+  #sheetTable td{padding:3px 6px;border-bottom:1px solid var(--row-line);vertical-align:middle}
+  #sheetTable tr.grp td{
+    background:var(--row-head);color:var(--accent-ink);font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    font-size:10px;padding:8px 6px;border-top:1px solid var(--line);
+  }
+  #sheetTable tr.sub td{background:var(--row-sub);border-top:1px solid var(--line)}
+  #sheetTable tr.job td:first-child input{color:var(--muted)}
+  #sheetTable tr.sum td{color:var(--muted);font-family:ui-monospace,Menlo,monospace}
+  #sheetTable input,#sheetTable select{padding:4px 6px;font-size:12px;border-radius:5px}
+  #sheetTable input.num{text-align:right;font-family:ui-monospace,Menlo,monospace}
+  #sheetTable td.dims{color:var(--muted);font-family:ui-monospace,Menlo,monospace;white-space:nowrap}
+  #sheetTable td.act{white-space:nowrap}
+  #sheetTable a.open{
+    display:inline-block;padding:4px 7px;border:1px solid var(--line);border-radius:6px;
+    color:var(--accent-2);text-decoration:none;font-size:11px;
+  }
+  #sheetTable a.open:hover{border-color:var(--accent-2)}
+  #sheetTable button.mini{padding:4px 7px;font-size:11px}
+  #sheetTable button.mini.open{color:var(--accent-2);border-color:var(--line-hi)}
+  #sheetTable button.mini.open.off{color:var(--muted);opacity:.5}
+  .pr-need{color:#e07a5f;font-weight:600}.pr-want{color:#4aa3c7}.pr-later{color:var(--muted)}
+  .st-buy{color:#e0a33d}.st-ordered{color:#4aa3c7}.st-bought{color:#6f8f76}.st-owned{color:var(--muted)}
+  .sheet .empty{padding:24px;color:var(--muted)}
+  .main{flex:1;display:flex;min-height:0}
+  .side{
+    width:264px;flex:none;background:var(--panel);border-right:1px solid var(--line);
+    overflow-y:auto;padding:12px;
+  }
+  .side h3{
+    font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);
+    margin:16px 0 8px;font-weight:600;
+  }
+  .side h3:first-child{margin-top:0}
+  .layers{display:flex;flex-direction:column-reverse;gap:4px}
+  .layer{
+    display:flex;align-items:center;gap:4px;padding:4px 6px;border-radius:7px;
+    border:1px solid var(--line);background:var(--panel-2);cursor:pointer;
+  }
+  .layer.active{border-color:var(--accent);box-shadow:inset 2px 0 0 var(--accent)}
+  .layer input.lname{
+    flex:1;min-width:0;background:transparent;border:0;padding:2px 4px;font-size:12px;
+  }
+  .layer input.lname:focus{background:var(--field);outline:1px solid var(--accent-2)}
+  .layer .ico{
+    width:22px;height:22px;flex:none;border-radius:5px;border:0;background:transparent;
+    color:var(--muted);cursor:pointer;font-size:12px;line-height:1;padding:0;
+  }
+  .layer .ico:hover{background:var(--hover);color:var(--text)}
+  .layer .ico.act{color:var(--accent)}
+  .layer .count{color:var(--muted);font-size:10px;font-family:ui-monospace,Menlo,monospace}
+  .layer.off input.lname{text-decoration:line-through;color:var(--muted)}
+  .cat{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .cat button{
+    display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:7px 8px;
+    text-align:left;font-size:12px;line-height:1.25;position:relative;
+  }
+  .cat .x{
+    position:absolute;top:3px;right:3px;width:16px;height:16px;line-height:14px;text-align:center;
+    border-radius:4px;background:var(--chip);color:var(--muted);font-size:11px;cursor:pointer;
+  }
+  .cat .x:hover{background:var(--danger);color:#fff}
+  #catCustom:empty::after{
+    content:'No custom pieces yet — add one below.';
+    color:var(--muted);font-size:11px;line-height:1.5;grid-column:1/-1;
+  }
+  .cat button small{color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px}
+  .swatch{width:100%;height:4px;border-radius:2px;margin-bottom:3px}
+  .canvaswrap{flex:1;position:relative;min-width:0;background:var(--void)}
+  canvas{display:block;width:100%;height:100%;touch-action:none;cursor:crosshair}
+  .hint{
+    position:absolute;left:12px;bottom:12px;background:var(--overlay);border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;color:var(--muted);font-size:11px;line-height:1.6;pointer-events:none;
+    backdrop-filter:blur(2px);
+  }
+  .hint b{color:var(--text);font-weight:600}
+  .stats{
+    position:absolute;right:12px;top:12px;background:var(--overlay);border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted);
+    backdrop-filter:blur(2px);
+  }
+  .stats b{color:var(--accent);font-weight:600}
+  .props{width:270px;flex:none;background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:12px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+  .f label{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .empty{color:var(--muted);line-height:1.6}
+  .stack{display:flex;flex-direction:column;gap:6px}
+  .inline{display:flex;gap:6px}
+  .inline button{flex:1;justify-content:center;display:flex}
+  .tag{
+    display:inline-block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:#20160a;background:var(--accent);border-radius:4px;padding:2px 6px;font-weight:700;
+  }
+  .toast{
+    position:absolute;left:50%;bottom:16px;transform:translateX(-50%);
+    background:var(--accent);color:#20160a;font-weight:600;padding:8px 14px;border-radius:8px;
+    opacity:0;transition:opacity .2s;pointer-events:none;
+  }
+  .toast.show{opacity:1}
+  #mobileBar{display:none}
+  @media (max-width:900px){
+    .bar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:6px 10px;gap:6px}
+    .bar::-webkit-scrollbar{height:0}
+    .bar .sep{display:none}
+    .bar button,.bar input,.bar select{flex:none}
+    .tabs{padding:4px 8px 0}
+    .tab{padding:7px 12px;font-size:11px}
+    .main{flex-direction:row;position:relative}
+    .canvaswrap{flex:1;min-height:0}
+    .side,.props{
+      position:absolute;top:0;bottom:0;width:min(88%,340px);z-index:70;
+      box-shadow:0 0 30px rgba(0,0,0,.4);transition:transform .22s ease;max-height:none;
+    }
+    .side{left:0;transform:translateX(-102%)}
+    .props{right:0;transform:translateX(102%)}
+    .side.open,.props.open{transform:none}
+    .hint{display:none}
+    .stats{right:8px;top:8px;font-size:10px;padding:6px 8px}
+    #mobileBar{
+      display:flex;gap:4px;padding:6px 8px;background:var(--panel);
+      border-top:1px solid var(--line);flex:none;
+    }
+    #mobileBar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+      padding:7px 2px;font-size:15px;line-height:1}
+    #mobileBar button span{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+    #mobileBar button.on span{color:inherit}
+    .sheetbody{padding:8px}
+    #sheetTable{min-width:1000px}
+    .sheetbody{overflow-x:auto}
+    .mbox{width:100%;max-height:92vh}
+    .cat{grid-template-columns:1fr 1fr}
+    .layer .ico{width:26px;height:26px}
+  }
+  @media (max-width:900px) and (display-mode:standalone){ body{padding-bottom:env(safe-area-inset-bottom)} }
+</style>
+
+<div id="mobileBar">
+  <button data-m="side">▤ <span>Palette</span></button>
+  <button data-m="props">⚙ <span>Properties</span></button>
+  <button data-m="fit">⤢ <span>Fit</span></button>
+  <button data-m="undo">↶ <span>Undo</span></button>
+  <button data-m="del">✕ <span>Delete</span></button>
+</div>
+
+<div id="printArea"></div>
+
+<div id="modal" class="modal">
+  <div class="mbox">
+    <div class="mhead"><b id="mtitle"></b><button id="mclose" class="ghost">✕</button></div>
+    <div id="mbody"></div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="brand">Flat<span>·</span>Planner</div>
+  <button class="tab active" id="tabPlan">Planner</button>
+  <button class="tab" id="tabSvc">Services</button>
+  <button class="tab" id="tabList">Shopping list</button>
+  <div style="flex:1"></div>
+  <div id="tabHint" class="tabhint"></div>
+  <button class="tab" id="btnLang" title="Čeština / English">CS</button>
+  <button class="tab" id="btnTheme" title="Light / dark theme">☀</button>
+</div>
+
+<div class="bar" id="planBar">
+  <button id="addRoom">+ Room</button>
+  <select id="cornerCount" style="width:78px" title="Number of walls">
+    <option>3</option><option>4</option><option selected>5</option><option>6</option><option>8</option>
+  </select>
+  <button id="addPoly">+ Shaped room</button>
+  <button id="addInner">+ Room inside</button>
+  <div class="sep"></div>
+  <button id="btnGrid" class="on">Grid</button>
+  <button id="btnSnap" class="on">Snap</button>
+  <input id="snapSize" type="number" min="0.5" step="0.5" value="5" title="Snap step in cm" style="width:62px">
+  <span style="color:var(--muted)">cm</span>
+  <button id="btnFit">Fit view</button>
+  <div class="sep"></div>
+  <button id="btnDims" class="on">Dimensions</button>
+  <button id="btnMeasure">Measure</button>
+  <button id="btnDim">Add dimension</button>
+  <div class="sep"></div>
+  <button id="btnLockWalls">Lock all walls</button>
+  <button id="btnUndo" class="ghost">Undo</button>
+  <button id="btnDup" class="ghost">Duplicate</button>
+  <button id="btnDel" class="ghost danger">Delete</button>
+  <div class="sep"></div>
+  <input id="layoutName" placeholder="Plan name" style="width:130px">
+  <button id="btnVersions">Versions…</button>
+  <span id="verNow" class="tabhint"></span>
+  <div class="sep"></div>
+  <button id="btnExport">Export file</button>
+  <button id="btnImport">Import file</button>
+  <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
+  <button id="btnCheck">Check plan</button>
+  <button id="btnPrint" class="ghost">Print / PDF</button>
+  <button id="btnClear" class="ghost danger">New plan</button>
+</div>
+
+<div id="sheet" class="sheet">
+  <div class="sheetbar">
+    <select id="sheetLayer" style="width:150px"></select>
+    <label class="chk"><input type="checkbox" id="sheetAll"> include walls &amp; openings</label>
+    <label class="chk"><input type="checkbox" id="sheetRooms" checked> rooms (floor area)</label>
+    <label class="chk"><input type="checkbox" id="sheetSvc" checked> services</label>
+    <label class="chk"><input type="checkbox" id="sheetGroup" checked> group identical</label>
+    <select id="sheetPrio" style="width:132px">
+      <option value="*">All priorities</option>
+      <option value="need">Need only</option>
+      <option value="want">Want only</option>
+      <option value="later">Later only</option>
+      <option value="needwant">Need + Want</option>
+    </select>
+    <label class="chk">currency <input id="currency" value="Kč" style="width:60px"></label>
+    <div style="flex:1"></div>
+    <div id="sheetTotals" class="totals"></div>
+    <button id="sheetCsv">Export CSV</button>
+  </div>
+  <div class="sheetbody"><table id="sheetTable"></table></div>
+</div>
+
+<div class="main">
+  <div class="side">
+    <h3>Layers</h3>
+    <div id="layerList" class="layers"></div>
+    <button id="addLayer" style="width:100%;margin-top:6px">+ New layer</button>
+
+    <h3>My furniture</h3>
+    <div class="cat" id="catCustom"></div>
+    <div class="inline" style="margin-top:6px">
+      <button id="newType">+ New type</button><button id="fromSel">From selection</button>
+    </div>
+    <div id="newForm" style="display:none;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:8px">
+      <div class="f" style="margin-bottom:6px"><label>Name</label><input id="ntName" placeholder="e.g. Grandma's cabinet"></div>
+      <div class="row" style="margin-bottom:6px">
+        <div class="f"><label>Width cm</label><input id="ntW" type="number" value="100"></div>
+        <div class="f"><label>Depth cm</label><input id="ntH" type="number" value="60"></div>
+      </div>
+      <div class="f" style="margin-bottom:8px"><label>Colour</label><input id="ntC" type="color" value="#8b8f95" style="padding:2px;height:32px"></div>
+      <div class="inline"><button id="ntSave">Save type</button><button id="ntCancel" class="ghost">Cancel</button></div>
+    </div>
+
+    <h3>Walls</h3><div class="cat" id="catWall"></div>
+    <h3>Openings</h3><div class="cat" id="catOpen"></div>
+    <h3>Living</h3><div class="cat" id="catLiving"></div>
+    <h3>Bedroom</h3><div class="cat" id="catBed"></div>
+    <h3>Kitchen</h3><div class="cat" id="catKitchen"></div>
+    <h3>Bathroom</h3><div class="cat" id="catBath"></div>
+    <h3>Other</h3><div class="cat" id="catOther"></div>
+  </div>
+
+  <div class="side" id="sideSvc" style="display:none">
+    <h3>Electrical points</h3><div class="cat" id="svcElec"></div>
+    <h3>Water points</h3><div class="cat" id="svcWater"></div>
+    <h3>Cable runs</h3><div class="cat" id="svcCable"></div>
+    <h3>Pipe runs</h3><div class="cat" id="svcPipe"></div>
+    <h3>Circuits</h3>
+    <div id="circList" class="layers"></div>
+    <button id="addCircuit" style="width:100%;margin-top:6px">+ New circuit</button>
+
+    <h3>View</h3>
+    <div class="stack">
+      <label class="chk"><input type="checkbox" id="svcByCircuit"> colour by circuit</label>
+      <label class="chk"><input type="checkbox" id="svcShowElec" checked> show electrical</label>
+      <label class="chk"><input type="checkbox" id="svcShowWater" checked> show water</label>
+      <label class="chk"><input type="checkbox" id="svcHeights" checked> show mounting heights</label>
+      <button id="svcClearTool" class="ghost">Back to select (Esc)</button>
+    </div>
+  </div>
+
+  <div class="canvaswrap">
+    <canvas id="cv"></canvas>
+    <div class="stats" id="stats"></div>
+    <div class="hint">
+      <b>Drag</b> to move · <b>R</b> rotate 90° · <b>L</b> lock · <b>Del</b> remove<br>
+      <b>Space/middle drag</b> pan · <b>Scroll</b> zoom · <b>Ctrl+Z</b> undo<br>
+      <b>M</b> measure · <b>D</b> dimension · <b>Esc</b> back to select<br>
+      Doors and windows snap onto the nearest wall — room or freestanding.
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div class="props" id="props"></div>
+</div>
+
+<script>
+// ---------- model ----------
+const CM = 1;                 // all geometry in centimetres
+const WALL = 12;              // wall thickness (cm)
+let state = { rooms:[], items:[], dims:[], layers:[{id:'L0', name:'Floor', visible:true, locked:false}] };
+let tool = 'select';          // 'select' | 'measure' | 'dim'
+let temp = null;              // line being drawn / last measurement
+let sel = null;               // {kind:'room'|'item', id}
+let selVert = -1;             // index of the highlighted polygon corner
+let history = [];
+let uid = 1;
+const nid = () => 'x' + (uid++) + Date.now().toString(36).slice(-3);
+
+const CATALOG = {
+  catWall: [
+    {t:'wall', n:'Wall',        w:200, h:WALL, c:'#1a1f24', op:'wall'},
+    {t:'wall', n:'Short wall',  w:100, h:WALL, c:'#1a1f24', op:'wall'},
+    {t:'wall', n:'Partition',   w:200, h:7,    c:'#2c333a', op:'wall'},
+    {t:'wall', n:'Half wall',   w:120, h:20,   c:'#3a434b', op:'wall'},
+  ],
+  catOpen: [
+    {t:'door',   n:'Door',        w:80,  h:WALL, c:'#c9713b', op:'door'},
+    {t:'opening',n:'Opening',     w:100, h:WALL, c:'#b0885a', op:'opening'},
+    {t:'opening',n:'Wide opening',w:160, h:WALL, c:'#b0885a', op:'opening'},
+    {t:'door',   n:'Wide door',   w:120, h:WALL, c:'#c9713b', op:'door'},
+    {t:'window', n:'Window',      w:120, h:WALL, c:'#4aa3c7', op:'window'},
+    {t:'window', n:'Balcony door',w:90,  h:WALL, c:'#4aa3c7', op:'window'},
+  ],
+  catLiving: [
+    {t:'sofa',   n:'Sofa 3-seat', w:220, h:90,  c:'#6f8f76'},
+    {t:'sofa',   n:'Sofa 2-seat', w:160, h:88,  c:'#6f8f76'},
+    {t:'chair',  n:'Armchair',    w:85,  h:85,  c:'#6f8f76'},
+    {t:'table',  n:'Coffee table',w:110, h:60,  c:'#a07c52'},
+    {t:'table',  n:'Dining table',w:160, h:90,  c:'#a07c52'},
+    {t:'chair',  n:'Chair',       w:45,  h:45,  c:'#a07c52'},
+    {t:'shelf',  n:'TV unit',     w:180, h:40,  c:'#7c6f8f'},
+    {t:'shelf',  n:'Bookshelf',   w:90,  h:35,  c:'#7c6f8f'},
+    {t:'rug',    n:'Rug',         w:200, h:140, c:'#b4a184'},
+  ],
+  catBed: [
+    {t:'bed',    n:'Double bed',  w:160, h:200, c:'#5f7f96'},
+    {t:'bed',    n:'Queen bed',   w:180, h:200, c:'#5f7f96'},
+    {t:'bed',    n:'Single bed',  w:90,  h:200, c:'#5f7f96'},
+    {t:'shelf',  n:'Nightstand',  w:45,  h:40,  c:'#7c6f8f'},
+    {t:'wardrobe',n:'Wardrobe',   w:200, h:60,  c:'#7c6f8f'},
+    {t:'desk',   n:'Desk',        w:140, h:70,  c:'#a07c52'},
+  ],
+  catKitchen: [
+    {t:'counter',n:'Counter run', w:240, h:60,  c:'#8a8f7a'},
+    {t:'counter',n:'Corner unit', w:60,  h:60,  c:'#8a8f7a'},
+    {t:'fridge', n:'Fridge',      w:60,  h:65,  c:'#93989c'},
+    {t:'stove',  n:'Stove',       w:60,  h:60,  c:'#93989c'},
+    {t:'sink',   n:'Sink',        w:80,  h:60,  c:'#93989c'},
+    {t:'island', n:'Island',      w:180, h:90,  c:'#8a8f7a'},
+  ],
+  catBath: [
+    {t:'bath',   n:'Bathtub',     w:170, h:75,  c:'#5f96a0'},
+    {t:'shower', n:'Shower',      w:90,  h:90,  c:'#5f96a0'},
+    {t:'toilet', n:'Toilet',      w:40,  h:65,  c:'#93989c'},
+    {t:'sink',   n:'Washbasin',   w:60,  h:45,  c:'#93989c'},
+    {t:'washer', n:'Washer',      w:60,  h:60,  c:'#93989c'},
+  ],
+  catOther: [
+    {t:'box',    n:'Custom box',  w:100, h:60,  c:'#8b8f95'},
+    {t:'stairs', n:'Stairs',      w:100, h:250, c:'#7a7f85'},
+    {t:'radiator',n:'Radiator',   w:100, h:12,  c:'#93989c'},
+    {t:'plant',  n:'Plant',       w:50,  h:50,  c:'#6f8f76'},
+  ]
+};
+
+
+// ---------- language ----------
+let lang = 'en';
+const I18N = { cs: {
+  // tabs & toolbar
+  "Planner":"Plánovač", "Shopping list":"Nákupní seznam",
+  "+ Room":"+ Místnost", "+ Shaped room":"+ Tvarovaná místnost", "+ Room inside":"+ Vnitřní místnost",
+  "Grid":"Mřížka", "Snap":"Přichytávat", "Fit view":"Přizpůsobit", "Dimensions":"Kóty",
+  "Measure":"Měřit", "Add dimension":"Přidat kótu", "Lock all walls":"Zamknout stěny",
+  "Unlock all walls":"Odemknout stěny", "Undo":"Zpět", "Duplicate":"Duplikovat", "Delete":"Smazat",
+  "Save":"Uložit", "Load":"Načíst", "Remove":"Odebrat", "Export file":"Exportovat soubor",
+  "Import file":"Importovat soubor", "Export PNG":"Exportovat PNG", "New plan":"Nový plán",
+  "Layout name":"Název plánu", "Saved layouts…":"Uložené plány…",
+  // sidebar
+  "Layers":"Vrstvy", "+ New layer":"+ Nová vrstva", "My furniture":"Můj nábytek",
+  "+ New type":"+ Nový typ", "From selection":"Z výběru",
+  "No custom pieces yet — add one below.":"Zatím žádné vlastní kusy — přidejte je níže.",
+  "Walls":"Stěny", "Openings":"Otvory", "Living":"Obývací pokoj", "Bedroom":"Ložnice",
+  "Kitchen":"Kuchyně", "Bathroom":"Koupelna", "Other":"Ostatní",
+  "Name":"Název", "Width cm":"Šířka cm", "Depth cm":"Hloubka cm", "Colour":"Barva",
+  "Save type":"Uložit typ", "Cancel":"Zrušit",
+  // catalogue
+  "Wall":"Stěna", "Short wall":"Krátká stěna", "Partition":"Příčka", "Half wall":"Nízká stěna",
+  "Door":"Dveře", "Wide door":"Široké dveře", "Opening":"Průchod", "Wide opening":"Široký průchod",
+  "Window":"Okno", "Balcony door":"Balkonové dveře",
+  "Sofa 3-seat":"Pohovka 3místná", "Sofa 2-seat":"Pohovka 2místná", "Armchair":"Křeslo",
+  "Coffee table":"Konferenční stolek", "Dining table":"Jídelní stůl", "Chair":"Židle",
+  "TV unit":"TV stolek", "Bookshelf":"Knihovna", "Rug":"Koberec",
+  "Double bed":"Manželská postel", "Queen bed":"Postel queen", "Single bed":"Jednolůžko",
+  "Nightstand":"Noční stolek", "Wardrobe":"Skříň", "Desk":"Psací stůl",
+  "Counter run":"Kuchyňská linka", "Corner unit":"Rohová skříňka", "Fridge":"Lednice",
+  "Stove":"Sporák", "Sink":"Dřez", "Island":"Ostrůvek",
+  "Bathtub":"Vana", "Shower":"Sprchový kout", "Toilet":"WC", "Washbasin":"Umyvadlo", "Washer":"Pračka",
+  "Custom box":"Vlastní blok", "Stairs":"Schodiště", "Radiator":"Radiátor", "Plant":"Rostlina",
+  // properties
+  "Properties":"Vlastnosti", "Nothing selected.":"Nic není vybráno.",
+  "Add a room, then drag furniture from the left onto the plan. Click any piece to set exact size, position and angle here.":
+    "Přidejte místnost a přetáhněte nábytek zleva do plánu. Kliknutím na kus nastavíte přesný rozměr, polohu a úhel.",
+  "Layer":"Vrstva", "Product link":"Odkaz na produkt", "Angle °":"Úhel °", "Height cm":"Výška cm",
+  "Thickness cm":"Tloušťka cm", "Length cm":"Délka cm", "Wall cm":"Stěna cm", "Ceiling cm":"Strop cm",
+  "Note":"Poznámka", "Lock":"Zamknout", "Unlock":"Odemknout", "Rotate 90°":"Otočit o 90°",
+  "Flip swing":"Otočit otevírání", "Straighten":"Srovnat", "Snap to walls":"Přichytit ke stěnám",
+  "Centre in room":"Vystředit v místnosti", "Edit corners":"Upravit rohy",
+  "Bring to front":"Do popředí", "Send to back":"Do pozadí", "Remove last corner":"Odebrat poslední roh",
+  "Make horizontal":"Vodorovně", "Make vertical":"Svisle",
+  "Room":"Místnost", "Dimension":"Kóta",
+  "Click a blue + on the plan to add a corner to that wall. Alt-click a corner to remove it.":
+    "Kliknutím na modré + v plánu přidáte roh do dané stěny. Alt+klik na roh jej odebere.",
+  "area":"plocha", "perimeter":"obvod", "walls":"stěn", "net":"čistá",
+  "incl.":"vč.", "inner room":"vnitřní místnost", "inner rooms":"vnitřních místností",
+  // layers panel
+  "Click to make this the active layer":"Kliknutím nastavíte jako aktivní vrstvu",
+  "Hide layer":"Skrýt vrstvu", "Show layer":"Zobrazit vrstvu",
+  "Lock layer":"Zamknout vrstvu", "Unlock layer":"Odemknout vrstvu",
+  "Move layer up":"Posunout vrstvu nahoru",
+  "Delete layer (its pieces move down)":"Smazat vrstvu (prvky se přesunou níž)",
+  "Floor":"Podlaha",
+  // status readout
+  "rooms":"místnosti", "items":"prvky", "floor":"podlaha", "selected":"vybráno",
+  "measuring":"měření", "dimension":"kóta",
+  // shopping list
+  "include walls & openings":"včetně stěn a otvorů", "rooms (floor area)":"místnosti (podlaha)",
+  "currency":"měna", "Export CSV":"Exportovat CSV",
+  "Prices and links are saved with the plan":"Ceny a odkazy se ukládají s plánem",
+  "Item":"Položka", "Size":"Rozměr", "Priced by":"Cena za", "Amount":"Množství", "Qty":"Ks",
+  "Unit price":"Cena za jednotku", "Total price":"Cena celkem", "Store":"Obchod",
+  "Status":"Stav", "Find":"Najít", "Open ↗":"Otevřít ↗",
+  "own":"vlastní", "part":"díl", "parts":"dílů", "+ Part":"+ Díl", "New part":"Nový díl",
+  "Add a component":"Přidat díl",
+  "Services":"Rozvody", "Services — electricity & plumbing":"Rozvody — elektro a voda",
+  "Electrical points":"Elektro prvky", "Water points":"Vodo prvky",
+  "Cable runs":"Vedení kabelů", "Pipe runs":"Vedení potrubí", "View":"Zobrazení",
+  "show electrical":"zobrazit elektro", "show water":"zobrazit vodu",
+  "show mounting heights":"zobrazit výšky", "Back to select (Esc)":"Zpět na výběr (Esc)",
+  "services":"rozvody",
+  "Socket":"Zásuvka", "Double socket":"Dvojzásuvka", "Quad socket":"Čtyřzásuvka",
+  "Switch":"Vypínač", "Two-way switch":"Střídavý vypínač", "Dimmer":"Stmívač",
+  "Ceiling light":"Stropní světlo", "Wall light":"Nástěnné světlo",
+  "Data / TV socket":"Datová / TV zásuvka", "Distribution box":"Rozvaděč",
+  "Cold inlet":"Studená voda", "Hot inlet":"Teplá voda", "Mixer pair":"Baterie (SV+TV)",
+  "Valve":"Ventil", "Waste outlet":"Odpad", "Floor drain":"Podlahová vpusť",
+  "Radiator connection":"Přípojka radiátoru",
+  "Power cable 3×2.5":"Kabel 3×2,5", "Light cable 3×1.5":"Kabel 3×1,5", "Data cable":"Datový kabel",
+  "Cold pipe":"Potrubí studená", "Hot pipe":"Potrubí teplá", "Waste pipe":"Odpadní potrubí",
+  "Click on the plan to place":"Klikněte do plánu pro umístění",
+  "Click to route, Esc or double-click to finish":"Klikáním veďte trasu, Esc nebo dvojklik ukončí",
+  "Heights are measured from the finished floor":"Výšky se měří od čisté podlahy",
+  "Label":"Popis", "Circuit":"Okruh", "points":"bodů", "Remove last point":"Odebrat poslední bod",
+  "A run needs at least 2 points":"Trasa potřebuje alespoň 2 body",
+  "e.g. above worktop":"např. nad linkou",
+  "Pick a symbol on the left, then click on the plan. Runs route along walls automatically — click each turning point, Esc to finish.":
+    "Vyberte symbol vlevo a klikněte do plánu. Trasy se vedou pravoúhle — klikejte na body zlomu, Esc ukončí.",
+  "Priority":"Priorita", "Need":"Nutné", "Want":"Chci", "Later":"Později",
+  "All priorities":"Všechny priority", "Need only":"Jen nutné", "Want only":"Jen chci",
+  "Later only":"Jen později", "Need + Want":"Nutné + chci",
+  "To buy":"Koupit", "Ordered":"Objednáno", "Bought":"Koupeno", "Already own":"Máme",
+  "per piece":"za kus", "per m²":"za m²", "per metre":"za metr",
+  "floor area m²":"podlaha m²", "wall area m²":"stěny m²", "perimeter m":"obvod m",
+  "Flooring":"Podlahová krytina", "Floor tiling":"Dlažba", "Underfloor insulation":"Izolace podlahy",
+  "Wall paint":"Malba stěn", "Wall tiling":"Obklad", "Wallpaper":"Tapeta",
+  "Ceiling paint":"Malba stropu", "Skirting boards":"Soklové lišty", "Coving":"Stropní lišty",
+  "+ Add item…":"+ Přidat položku…", "ceiling":"strop", "room subtotal":"mezisoučet místnosti",
+  "Rooms — building work":"Místnosti — stavební práce",
+  "Building work subtotal":"Mezisoučet stavebních prací", "Subtotal":"Mezisoučet",
+  "lines":"řádků", "pieces":"kusů", "still to buy":"zbývá koupit", "total":"celkem",
+  "m² floor":"m² podlahy",
+  "Nothing to list yet — place some furniture on the plan first.":
+    "Zatím není co vypsat — nejdřív umístěte nábytek do plánu.",
+  // dialogs
+  "Export plan":"Export plánu", "Import plan":"Import plánu", "Export image":"Export obrázku",
+  "Export shopping list":"Export nákupního seznamu",
+  "Download":"Stáhnout", "Copy to clipboard":"Kopírovat do schránky", "Copied ✓":"Zkopírováno ✓",
+  "Open in new tab":"Otevřít v nové kartě", "Choose a .json file":"Vybrat soubor .json",
+  "Load pasted text":"Načíst vložený text",
+  "If the download button does nothing (some browsers block it in embedded pages), copy the text below into a file instead.":
+    "Pokud tlačítko stažení nereaguje (některé prohlížeče je v vloženém okně blokují), zkopírujte text níže do souboru.",
+  "Pick a file, or paste the contents of a plan file below and press Load.":
+    "Vyberte soubor, nebo níže vložte obsah plánu a stiskněte Načíst.",
+  "If the download is blocked, right-click the preview below and choose \"Save image as…\".":
+    "Pokud je stažení blokováno, klikněte pravým tlačítkem na náhled a zvolte „Uložit obrázek jako…“.",
+  // toasts
+  "New plan started":"Nový plán založen", "Saved":"Uloženo", "Locked":"Zamčeno", "Unlocked":"Odemčeno",
+  "Snapping off":"Přichytávání vypnuto", "Dimensions shown":"Kóty zobrazeny", "Dimensions hidden":"Kóty skryty",
+  "Type removed":"Typ odebrán", "Line removed":"Řádek odebrán", "CSV exported":"CSV exportováno",
+  "Locked — unlock it first":"Zamčeno — nejdřív odemkněte",
+  "Locked — press L to unlock":"Zamčeno — odemknete klávesou L",
+  "A room needs at least 3 walls":"Místnost musí mít alespoň 3 stěny",
+  "Keep at least one layer":"Ponechte alespoň jednu vrstvu",
+  "New layer — new pieces land here":"Nová vrstva — nové prvky půjdou sem",
+  "Select a piece of furniture first":"Nejdřív vyberte kus nábytku",
+  "Give it a name and a size":"Zadejte název a rozměr",
+  "No room walls to snap to":"Není k čemu přichytit",
+  "Nothing close enough — move it nearer a wall":"Nic není dost blízko — posuňte blíž ke stěně",
+  "Drag the corner dots to reshape":"Tvar upravíte tažením rohových bodů",
+  "Select a room first":"Nejdřív vyberte místnost",
+  "Nothing selected":"Nic není vybráno",
+  "Paste a product link in this row first":"Nejdřív do řádku vložte odkaz na produkt",
+  "No custom pieces yet":"Zatím žádné vlastní kusy",
+  "Rooms and walls locked":"Místnosti a stěny zamčeny",
+  "Rooms and walls unlocked":"Místnosti a stěny odemčeny",
+  "No freestanding walls yet":"Zatím žádné volně stojící stěny",
+  "Pick a layout first":"Nejdřív vyberte plán",
+  "Could not save":"Nepodařilo se uložit"
+}};
+const T = str => (lang === 'cs' && I18N.cs[str]) ? I18N.cs[str] : str;
+
+// The page is authored in English; switching to Czech rewrites the rendered DOM and
+// remembers each original so switching back is exact.
+let i18nUndo = [];
+function translateDOM(root){
+  if(lang !== 'cs') return;
+  const dict = I18N.cs, scope = root || document.body;
+  const walk = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while(walk.nextNode()) nodes.push(walk.currentNode);
+  nodes.forEach(n=>{
+    const t = n.nodeValue.trim();
+    if(t && dict[t]){ i18nUndo.push([n, 'nodeValue', n.nodeValue]); n.nodeValue = n.nodeValue.replace(t, dict[t]); }
+  });
+  scope.querySelectorAll('[placeholder]').forEach(el=>{
+    if(dict[el.placeholder]){ i18nUndo.push([el, 'placeholder', el.placeholder]); el.placeholder = dict[el.placeholder]; }
+  });
+  scope.querySelectorAll('[title]').forEach(el=>{
+    if(dict[el.title]){ i18nUndo.push([el, 'title', el.title]); el.title = dict[el.title]; }
+  });
+}
+function restoreDOM(){
+  for(let i=i18nUndo.length-1;i>=0;i--){
+    const [node, prop, val] = i18nUndo[i];
+    try{ node[prop] = val; }catch(e){}
+  }
+  i18nUndo = [];
+}
+const HINT = {
+  en: `<b>Drag</b> to move · <b>R</b> rotate 90° · <b>L</b> lock · <b>Del</b> remove<br>
+       <b>Space/middle drag</b> pan · <b>Scroll</b> zoom · <b>Ctrl+Z</b> undo<br>
+       <b>M</b> measure · <b>D</b> dimension · <b>Esc</b> back to select<br>
+       Doors and windows snap onto the nearest wall — room or freestanding.`,
+  cs: `<b>Tažením</b> posunete · <b>R</b> otočí o 90° · <b>L</b> zamkne · <b>Del</b> smaže<br>
+       <b>Mezerník/střední tlačítko</b> posun plátna · <b>Kolečko</b> lupa · <b>Ctrl+Z</b> zpět<br>
+       <b>M</b> měření · <b>D</b> kóta · <b>Esc</b> zpět na výběr<br>
+       Dveře a okna se přichytí k nejbližší stěně — místnosti i volně stojící.`
+};
+function setLang(l){
+  restoreDOM();
+  lang = l;
+  document.documentElement.lang = l;
+  document.querySelector('.hint').innerHTML = HINT[l];
+  document.getElementById('btnLang').textContent = l === 'cs' ? 'EN' : 'CS';
+  if(typeof store === 'object') { store.lang = l; persist(); }
+  renderCatalog(); renderLayers(); renderProps();
+  if(typeof activeTab !== 'undefined' && activeTab === 'list') renderSheet();
+  translateDOM();
+  draw();
+}
+
+// ---------- view ----------
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let view = {z:0.55, x:0, y:0};      // z = px per cm
+const S = p => ({x:(p.x-view.x)*view.z, y:(p.y-view.y)*view.z});
+const W = p => ({x:p.x/view.z+view.x, y:p.y/view.z+view.y});
+
+function resize(){
+  const r = cv.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  cv.width = Math.max(1, r.width*d); cv.height = Math.max(1, r.height*d);
+  ctx.setTransform(d,0,0,d,0,0); draw();
+}
+new ResizeObserver(resize).observe(document.querySelector('.canvaswrap'));
+
+// ---------- helpers ----------
+const rot = (x,y,a)=>{const c=Math.cos(a),s=Math.sin(a);return{x:x*c-y*s,y:x*s+y*c}};
+const rad = d => d*Math.PI/180;
+const snapV = v => snapOn ? Math.round(v/snapStep)*snapStep : Math.round(v*10)/10;
+const getItem = id => state.items.find(i=>i.id===id);
+const getRoom = id => state.rooms.find(r=>r.id===id);
+// ---------- layers ----------
+let activeLayer = null;
+function ensureLayers(){
+  if(!state) return;
+  if(!Array.isArray(state.items)) state.items = [];
+  if(!Array.isArray(state.rooms)) state.rooms = [];
+  if(!Array.isArray(state.dims))  state.dims  = [];
+  if(!state.svc || !Array.isArray(state.svc.points)) state.svc = {points:[], runs:[], circuits:[], ...(state.svc||{})};
+  if(!Array.isArray(state.svc.runs)) state.svc.runs = [];
+  if(!state.svcMeta) state.svcMeta = {};
+  if(!Array.isArray(state.layers) || !state.layers.length)
+    state.layers = [{id:'L0', name:T('Floor'), visible:true, locked:false}];
+  const ids = state.layers.map(l=>l.id);
+  state.items.forEach(i=>{ if(!ids.includes(i.layer)) i.layer = state.layers[0].id; });
+  if(!ids.includes(activeLayer)) activeLayer = state.layers[state.layers.length-1].id;
+}
+const layerOf = it => state.layers.find(l=>l.id===it.layer) || state.layers[0];
+const layerBlocked = it => { const l = layerOf(it); return !l.visible || l.locked; };
+const itemsOfLayer = id => state.items.filter(i=>i.layer===id);
+
+const getDim = id => (state.dims||[]).find(d=>d.id===id);
+const selObj = () => !sel ? null
+  : sel.kind==='room' ? getRoom(sel.id)
+  : sel.kind==='dim'  ? getDim(sel.id)
+  : getItem(sel.id);
+const dimLen = d => Math.hypot(d.x2-d.x1, d.y2-d.y1);
+
+// Snap points for measuring: the *envelope* of everything — wall faces rather than
+// wall centrelines, and the outer edges of furniture, doors and windows.
+function snapTargets(){
+  const pts = [], segs = [];
+  const edge = (a, b) => { segs.push([a, b]); pts.push(a, b); };
+
+  // offset a wall line sideways by `off`
+  const offLine = (a, b, off) => {
+    const len = Math.hypot(b.x-a.x, b.y-a.y) || 1;
+    const d = {x:(b.x-a.x)/len, y:(b.y-a.y)/len};
+    const n = {x:-d.y, y:d.x};
+    return {p:{x:a.x+n.x*off, y:a.y+n.y*off}, d};
+  };
+  // where two offset wall lines meet — the real face corner
+  const cross = (L1, L2) => {
+    const den = L1.d.x*L2.d.y - L1.d.y*L2.d.x;
+    if(Math.abs(den) < 1e-9) return null;                 // parallel walls
+    const t = ((L2.p.x-L1.p.x)*L2.d.y - (L2.p.y-L1.p.y)*L2.d.x)/den;
+    return {x:L1.p.x + L1.d.x*t, y:L1.p.y + L1.d.y*t};
+  };
+  // a room's wall faces as a closed, properly mitred outline
+  const facePoly = (p, off) => {
+    const n = p.length, out = [];
+    for(let i=0;i<n;i++){
+      const prev = p[(i-1+n)%n], cur = p[i], next = p[(i+1)%n];
+      out.push(cross(offLine(prev, cur, off), offLine(cur, next, off)) || {x:cur.x, y:cur.y});
+    }
+    return out;
+  };
+
+  state.rooms.forEach(r=>{
+    const p = roomPts(r);
+    const hw = wallOf(r)/2;
+    for(const off of [hw, -hw]){                          // outer face and inner face
+      const q = facePoly(p, off);
+      for(let i=0;i<q.length;i++) edge(q[i], q[(i+1)%q.length]);
+    }
+    p.forEach(v=> pts.push(v));                           // centreline corners too
+  });
+
+  // where wall faces of different rooms cross, that junction is a corner too
+  const wallSegs = segs.slice();
+  for(let i=0;i<wallSegs.length;i++){
+    for(let j=i+1;j<wallSegs.length;j++){
+      const [a,b] = wallSegs[i], [c,d] = wallSegs[j];
+      const r1={x:b.x-a.x, y:b.y-a.y}, r2={x:d.x-c.x, y:d.y-c.y};
+      const den = r1.x*r2.y - r1.y*r2.x;
+      if(Math.abs(den) < 1e-9) continue;
+      const t = ((c.x-a.x)*r2.y - (c.y-a.y)*r2.x)/den;
+      const u = ((c.x-a.x)*r1.y - (c.y-a.y)*r1.x)/den;
+      if(t < -0.02 || t > 1.02 || u < -0.02 || u > 1.02) continue;
+      pts.push({x:a.x+r1.x*t, y:a.y+r1.y*t});
+    }
+  }
+
+  state.items.forEach(it=>{
+    const c = [[-1,-1],[1,-1],[1,1],[-1,1]].map(([sx,sy])=>{
+      const q = rot(sx*it.w/2, sy*it.h/2, rad(it.rot));
+      return {x:it.x+q.x, y:it.y+q.y};
+    });
+    for(let i=0;i<4;i++) edge(c[i], c[(i+1)%4]);           // furniture / wall / opening faces
+  });
+
+  return {pts, segs};
+}
+
+function snapPoint(p){
+  const CORNER = 20/view.z, FACE = 13/view.z;              // screen pixels → cm
+  const {pts, segs} = snapTargets();
+
+  let best = null;
+  for(const q of pts){                                     // corners win
+    const d = Math.hypot(p.x-q.x, p.y-q.y);
+    if(d < CORNER && (!best || d < best.d)) best = {d, q};
+  }
+  if(best) return {x:Math.round(best.q.x), y:Math.round(best.q.y), snapped:true};
+
+  for(const [a,b] of segs){                                // then flat faces
+    const vx=b.x-a.x, vy=b.y-a.y, l2=vx*vx+vy*vy;
+    if(!l2) continue;
+    let t = ((p.x-a.x)*vx + (p.y-a.y)*vy)/l2;
+    if(t < -0.02 || t > 1.02) continue;
+    t = Math.max(0, Math.min(1, t));
+    const q = {x:a.x+vx*t, y:a.y+vy*t}, d = Math.hypot(p.x-q.x, p.y-q.y);
+    if(d < FACE && (!best || d < best.d)) best = {d, q};
+  }
+  if(best) return {x:Math.round(best.q.x), y:Math.round(best.q.y), snapped:true};
+
+  return {x:snapV(p.x), y:snapV(p.y), snapped:false};
+}
+
+function distToSeg(p, a, b){  const vx=b.x-a.x, vy=b.y-a.y, l2=vx*vx+vy*vy;
+  if(!l2) return Math.hypot(p.x-a.x, p.y-a.y);
+  let t=((p.x-a.x)*vx+(p.y-a.y)*vy)/l2; t=Math.max(0,Math.min(1,t));
+  return Math.hypot(p.x-(a.x+vx*t), p.y-(a.y+vy*t));
+}
+const isOpening = it => it.op === 'door' || it.op === 'window' || it.op === 'opening';
+const isWall = it => it.op === 'wall';
+const wallOf = r => (r && r.wall > 0) ? r.wall : WALL;   // per-room wall thickness
+
+// a room is either a rectangle (w,h) or a polygon (pts, relative to x,y)
+const roomPts = r => r.pts
+  ? r.pts.map(p=>({x:r.x+p.x, y:r.y+p.y}))
+  : [{x:r.x,y:r.y},{x:r.x+r.w,y:r.y},{x:r.x+r.w,y:r.y+r.h},{x:r.x,y:r.y+r.h}];
+function roomArea(r){
+  const p = roomPts(r); let a = 0;
+  for(let i=0;i<p.length;i++){ const q=p[(i+1)%p.length]; a += p[i].x*q.y - q.x*p[i].y; }
+  return Math.abs(a)/2;
+}
+function roomPerimeter(r){
+  const p = roomPts(r); let s = 0;
+  for(let i=0;i<p.length;i++){ const q=p[(i+1)%p.length]; s += Math.hypot(q.x-p[i].x, q.y-p[i].y); }
+  return s;
+}
+// a room nested inside another shouldn't have its area counted twice
+function roomInside(a, b){
+  if(a === b) return false;
+  if(roomArea(a) >= roomArea(b)) return false;
+  const outline = roomPts(b), tol = Math.max(wallOf(a), wallOf(b));  // nested rooms share their host's wall
+  const nearEdge = p => {
+    for(let i=0;i<outline.length;i++)
+      if(distToSeg(p, outline[i], outline[(i+1)%outline.length]) <= tol) return true;
+    return false;
+  };
+  if(!inPoly(roomCentre(a), outline)) return false;
+  return roomPts(a).every(p=> inPoly(p, outline) || nearEdge(p));
+}
+function roomChildren(r){
+  return state.rooms.filter(c =>
+    roomInside(c, r) &&
+    !state.rooms.some(m => m!==r && m!==c && roomInside(c, m) && roomInside(m, r)));
+}
+function netArea(r){
+  return Math.max(0, roomArea(r) - roomChildren(r).reduce((s,c)=>s+roomArea(c), 0));
+}
+const totalFloorArea = () => state.rooms.reduce((s,r)=>s+netArea(r), 0);
+
+const roomCentre = r => { const p=roomPts(r); return {x:p.reduce((s,q)=>s+q.x,0)/p.length, y:p.reduce((s,q)=>s+q.y,0)/p.length}; };
+function inPoly(pt, p){
+  let hit=false;
+  for(let i=0,j=p.length-1;i<p.length;j=i++){
+    if((p[i].y>pt.y)!==(p[j].y>pt.y) && pt.x < (p[j].x-p[i].x)*(pt.y-p[i].y)/(p[j].y-p[i].y)+p[i].x) hit=!hit;
+  }
+  return hit;
+}
+
+function push(){ history.push(JSON.stringify(state)); if(history.length>60) history.shift(); }
+function undo(){ const s=history.pop(); if(!s) return; state=JSON.parse(s); ensureLayers(); sel=null; selVert=-1; drawAll(); }
+
+let gridOn=true, snapOn=true, snapStep=5, dimsOn=true;
+var activeTab = 'plan';
+
+// ---------- drawing ----------
+let theme = 'dark';
+const PAPER_BG = () => theme === 'light' ? '#ffffff' : '#eceee7';
+const VOID_BG  = () => theme === 'light' ? '#dcdfd7' : '#0e1114';
+
+function draw(){
+  ensureLayers();                            // may run before init() finishes
+  const w = cv.clientWidth, h = cv.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle = VOID_BG(); ctx.fillRect(0,0,w,h);
+
+  // paper sheet under everything
+  const b = bounds(220);
+  if(b){
+    const p0=S({x:b.x0,y:b.y0}), p1=S({x:b.x1,y:b.y1});
+    ctx.fillStyle = PAPER_BG();
+    ctx.fillRect(p0.x,p0.y,p1.x-p0.x,p1.y-p0.y);
+  }
+  if(gridOn) drawGrid(w,h);
+
+  const svcMode = (typeof activeTab !== 'undefined' && activeTab === 'svc');
+  if(svcMode) ctx.globalAlpha = 0.32;              // plan sits underneath, greyed
+  state.rooms.forEach(drawRoom);
+  state.layers.filter(l=>l.visible).forEach(L=>{
+    const its = itemsOfLayer(L.id);
+    its.filter(isWall).forEach(drawItem);
+    its.filter(i=>!isOpening(i) && !isWall(i)).forEach(drawItem);
+    its.filter(isOpening).forEach(drawItem);
+  });
+  if(svcMode){ ctx.globalAlpha = 1; drawServices(); }
+  if(!svcMode && dimsOn) (state.dims||[]).forEach(d=> drawDim(d, (sel && sel.kind==='dim' && sel.id===d.id) ? 'sel' : 'saved'));
+  if(temp && dimLen(temp) > 1) drawDim(temp, temp.kind==='dim' ? 'saved' : 'measure');
+  if(tool !== 'select' && hoverPt) drawSnapHints(hoverPt);
+
+  if(!svcMode) drawIssues();
+  const o = selObj();
+  if(o && !svcMode) drawSelection(o);
+  updateStats();
+}
+
+function drawGrid(w,h){
+  const tl = W({x:0,y:0}), br = W({x:w,y:h});
+  const major = snapStep <= 25 ? 100 : snapStep*4;
+  let step = snapOn ? snapStep : 10;
+  while(step*view.z < 5) step *= 2;            // never draw lines closer than ~5px
+  ctx.lineWidth = 1;
+  for(let g=Math.floor(tl.x/step)*step; g<br.x; g+=step){
+    const p = S({x:g,y:0}).x;
+    ctx.strokeStyle = (Math.abs(g % major) < 0.01) ? '#bcc3b5' : '#d8dcd2';
+    ctx.beginPath(); ctx.moveTo(p+.5,0); ctx.lineTo(p+.5,h); ctx.stroke();
+  }
+  for(let g=Math.floor(tl.y/step)*step; g<br.y; g+=step){
+    const p = S({x:0,y:g}).y;
+    ctx.strokeStyle = (Math.abs(g % major) < 0.01) ? '#bcc3b5' : '#d8dcd2';
+    ctx.beginPath(); ctx.moveTo(0,p+.5); ctx.lineTo(w,p+.5); ctx.stroke();
+  }
+}
+
+function drawRoom(r){
+  const p = roomPts(r).map(S);
+  ctx.beginPath();
+  ctx.moveTo(p[0].x, p[0].y);
+  for(let i=1;i<p.length;i++) ctx.lineTo(p[i].x, p[i].y);
+  ctx.closePath();
+  ctx.fillStyle = theme==='light' ? '#fbfcfa' : '#f7f8f4'; ctx.fill();
+  ctx.strokeStyle = '#1a1f24';
+  ctx.lineWidth = Math.max(2, wallOf(r)*view.z);
+  ctx.lineJoin = 'miter';
+  ctx.stroke();
+
+  const c = S(roomCentre(r));
+  const net = netArea(r), nested = roomChildren(r).length;
+  const area = (net/10000).toFixed(2);
+  ctx.fillStyle = '#5c6660';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  const fs = Math.max(9, Math.min(18, 13*Math.max(view.z,.4)));
+  ctx.font = `600 ${fs}px ui-sans-serif, system-ui`;
+  ctx.fillText(String(r.name).toUpperCase(), c.x, c.y-fs*0.7);
+  ctx.font = `${fs*0.85}px ui-monospace, Menlo, monospace`;
+  ctx.fillText(
+    (nested ? `${area} m² ${T('net')}` : `${area} m²`) + (r.pts ? `  ·  ${r.pts.length} ${T('walls')}` : `  ·  ${r.w}×${r.h}`),
+    c.x, c.y+fs*0.7);
+  if(r.locked) padlock(c.x, c.y - fs*1.9, fs*0.8);
+}
+
+function drawItem(it){
+  const p = S({x:it.x,y:it.y});
+  ctx.save();
+  ctx.translate(p.x,p.y); ctx.rotate(rad(it.rot));
+  const w = it.w*view.z, h = it.h*view.z;
+
+  if(it.op === 'wall'){
+    ctx.fillStyle = it.c;
+    ctx.fillRect(-w/2, -h/2, w, Math.max(2, h));
+    ctx.strokeStyle = 'rgba(255,255,255,.18)'; ctx.lineWidth = 1;
+    ctx.strokeRect(-w/2, -h/2, w, Math.max(2, h));
+    if(w > 44){
+      ctx.rotate(Math.abs(((it.rot%360)+360)%360 - 180) < 90 ? Math.PI : 0);
+      const fs = Math.max(8, Math.min(12, 10*Math.max(view.z,.5)));
+      ctx.fillStyle = '#5c6660'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+      ctx.font = `${fs}px ui-monospace, Menlo, monospace`;
+      ctx.fillText(`${it.w} cm`, 0, -Math.max(2,h)/2 - 3);
+    }
+  } else if(it.op === 'opening'){
+    ctx.fillStyle = theme==='light' ? '#fbfcfa' : '#f7f8f4'; // clear gap through the wall
+    ctx.fillRect(-w/2, -h/2-1, w, h+2);
+    ctx.strokeStyle = '#8d9288'; ctx.lineWidth = Math.max(1.2, 2*view.z);
+    ctx.beginPath();                                        // jambs at each end
+    ctx.moveTo(-w/2, -h/2); ctx.lineTo(-w/2, h/2);
+    ctx.moveTo( w/2, -h/2); ctx.lineTo( w/2, h/2);
+    ctx.stroke();
+  } else if(it.op === 'door'){
+    ctx.fillStyle = theme==='light' ? '#fbfcfa' : '#f7f8f4'; // knock the wall out
+    ctx.fillRect(-w/2, -h/2-1, w, h+2);
+    ctx.strokeStyle = '#8a5a2b'; ctx.lineWidth = Math.max(1.5, 3*view.z);
+    ctx.beginPath(); ctx.moveTo(-w/2,0); ctx.lineTo(-w/2, it.flip? w : -w); ctx.stroke();
+    ctx.strokeStyle = 'rgba(138,90,43,.55)'; ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(-w/2, 0, w, it.flip? 0 : -Math.PI/2, it.flip? Math.PI/2 : 0);
+    ctx.stroke();
+  } else if(it.op === 'window'){
+    ctx.fillStyle = theme==='light' ? '#fbfcfa' : '#f7f8f4'; ctx.fillRect(-w/2,-h/2-1,w,h+2);
+    ctx.strokeStyle = '#2b6f8a'; ctx.lineWidth = Math.max(1.2, 2*view.z);
+    ctx.beginPath(); ctx.moveTo(-w/2,-h/2); ctx.lineTo(w/2,-h/2);
+    ctx.moveTo(-w/2, h/2); ctx.lineTo(w/2, h/2);
+    ctx.moveTo(-w/2, 0);   ctx.lineTo(w/2, 0); ctx.stroke();
+  } else {
+    ctx.fillStyle = it.c + 'cc';
+    ctx.strokeStyle = '#2a3138'; ctx.lineWidth = Math.max(1, 1.6*view.z);
+    roundRect(-w/2,-h/2,w,h, Math.min(6, Math.min(w,h)/6));
+    ctx.fill(); ctx.stroke();
+    // a couple of legible glyphs
+    ctx.strokeStyle = 'rgba(20,26,30,.45)';
+    if(it.t==='bed'){ ctx.beginPath(); ctx.moveTo(-w/2, -h/2 + h*0.28); ctx.lineTo(w/2, -h/2 + h*0.28); ctx.stroke(); }
+    if(it.t==='sofa'){ ctx.beginPath(); ctx.moveTo(-w/2, -h/2 + h*0.32); ctx.lineTo(w/2, -h/2 + h*0.32); ctx.stroke(); }
+    if(it.t==='sink'||it.t==='toilet'||it.t==='bath'){ ctx.beginPath(); ctx.ellipse(0,0,w*0.3,h*0.3,0,0,7); ctx.stroke(); }
+    if(it.t==='stove'){ for(const sx of [-1,1]) for(const sy of [-1,1]){ ctx.beginPath(); ctx.arc(sx*w*0.22, sy*h*0.22, Math.min(w,h)*0.12,0,7); ctx.stroke(); } }
+
+    if(w > 46 && h > 20){
+      ctx.rotate(Math.abs(((it.rot%360)+360)%360 - 180) < 90 ? Math.PI : 0);
+      ctx.fillStyle='#17201f'; ctx.textAlign='center'; ctx.textBaseline='middle';
+      const fs = Math.max(8, Math.min(13, 11*Math.max(view.z,.5)));
+      ctx.font=`600 ${fs}px ui-sans-serif, system-ui`;
+      ctx.fillText(it.n, 0, -fs*0.55);
+      ctx.font=`${fs*0.85}px ui-monospace, Menlo, monospace`;
+      ctx.fillStyle='rgba(23,32,31,.7)';
+      ctx.fillText(`${it.w}×${it.h}`, 0, fs*0.65);
+    }
+  }
+  ctx.restore();
+  if(it.locked){
+    const q = S({x:it.x, y:it.y});
+    padlock(q.x, q.y, Math.min(it.w, Math.max(it.h, 10)) * view.z * 0.35);
+  }
+}
+
+function padlock(x, y, s){
+  s = Math.max(5, Math.min(11, s));
+  ctx.save();
+  ctx.strokeStyle = '#6b7680'; ctx.fillStyle = '#6b7680'; ctx.lineWidth = Math.max(1, s*0.16);
+  ctx.beginPath(); ctx.arc(x, y - s*0.28, s*0.28, Math.PI, 0); ctx.stroke();
+  ctx.beginPath();
+  ctx.rect(x - s*0.42, y - s*0.12, s*0.84, s*0.66);
+  ctx.fill();
+  ctx.restore();
+}
+
+// While measuring, show every point the cursor could lock onto, and ring the live one.
+function drawSnapHints(p){
+  const {pts} = snapTargets();
+  const R = 110/view.z, seen = new Set();
+  const near = [];
+  for(const q of pts){
+    if(Math.abs(q.x-p.x) > R || Math.abs(q.y-p.y) > R) continue;
+    const key = Math.round(q.x)+':'+Math.round(q.y);
+    if(seen.has(key)) continue;
+    seen.add(key); near.push(q);
+  }
+  ctx.save();
+  ctx.fillStyle = 'rgba(47,125,225,.5)';
+  near.forEach(q=>{
+    const c = S(q);
+    ctx.beginPath(); ctx.arc(c.x, c.y, 3, 0, 7); ctx.fill();
+  });
+  const live = snapPoint(p);
+  if(live.snapped){
+    const c = S(live);
+    ctx.strokeStyle = '#2f7de1'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(c.x, c.y, 8, 0, 7); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(c.x-13, c.y); ctx.lineTo(c.x-4, c.y);
+    ctx.moveTo(c.x+4, c.y); ctx.lineTo(c.x+13, c.y);
+    ctx.moveTo(c.x, c.y-13); ctx.lineTo(c.x, c.y-4);
+    ctx.moveTo(c.x, c.y+4); ctx.lineTo(c.x, c.y+13);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawDim(d, mode){                  // mode: 'saved' | 'sel' | 'measure'
+  const a = S({x:d.x1,y:d.y1}), b = S({x:d.x2,y:d.y2});
+  const col = mode==='measure' ? '#e0663c' : mode==='sel' ? '#f0a02c' : '#2f4a63';
+  const ang = Math.atan2(b.y-a.y, b.x-a.x);
+  ctx.save();
+  ctx.strokeStyle = col; ctx.lineWidth = 1.6;
+  if(mode==='measure') ctx.setLineDash([7,5]);
+  ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+  ctx.setLineDash([]);
+  // arrow heads + end ticks
+  for(const [pt,dir] of [[a,1],[b,-1]]){
+    ctx.beginPath();
+    ctx.moveTo(pt.x, pt.y);
+    ctx.lineTo(pt.x + Math.cos(ang+0.35)*9*dir, pt.y + Math.sin(ang+0.35)*9*dir);
+    ctx.moveTo(pt.x, pt.y);
+    ctx.lineTo(pt.x + Math.cos(ang-0.35)*9*dir, pt.y + Math.sin(ang-0.35)*9*dir);
+    ctx.moveTo(pt.x - Math.sin(ang)*7, pt.y + Math.cos(ang)*7);
+    ctx.lineTo(pt.x + Math.sin(ang)*7, pt.y - Math.cos(ang)*7);
+    ctx.stroke();
+  }
+  // label, always upright
+  const len = dimLen(d);
+  const txt = d.label ? `${d.label} · ${Math.round(len)} cm` : `${Math.round(len)} cm  (${(len/100).toFixed(2)} m)`;
+  const mx=(a.x+b.x)/2, my=(a.y+b.y)/2;
+  ctx.translate(mx,my);
+  ctx.rotate(Math.abs(ang) > Math.PI/2 ? ang+Math.PI : ang);
+  ctx.font = '600 11px ui-monospace, Menlo, monospace';
+  const w = ctx.measureText(txt).width;
+  ctx.fillStyle = theme==='light' ? '#fbfcfa' : '#f7f8f4';
+  roundRect(-w/2-6, -20, w+12, 16, 4); ctx.fill();
+  ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = col; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(txt, 0, -12);
+  ctx.restore();
+  if(mode==='sel'){ handle(a.x,a.y); handle(b.x,b.y); }
+  if(mode==='measure' || mode==='saved'){
+    ctx.strokeStyle = '#2f7de1'; ctx.lineWidth = 2;
+    if(d.s1){ ctx.beginPath(); ctx.arc(a.x, a.y, 7, 0, 7); ctx.stroke(); }
+    if(d.s2){ ctx.beginPath(); ctx.arc(b.x, b.y, 7, 0, 7); ctx.stroke(); }
+  }
+}
+
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+function drawSelection(o){
+  if(sel.kind==='dim') return;             // dimensions draw their own handles
+  const acc = o.locked ? '#6b7680' : '#f0a02c';
+  ctx.save();
+  if(sel.kind==='room'){
+    if(o.pts){
+      const p = roomPts(o).map(S);
+      ctx.strokeStyle=acc; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+      ctx.beginPath(); ctx.moveTo(p[0].x,p[0].y);
+      for(let i=1;i<p.length;i++) ctx.lineTo(p[i].x,p[i].y);
+      ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+      if(!o.locked){
+        for(let i=0;i<p.length;i++){          // "+" in the middle of each wall
+          const q=p[(i+1)%p.length];
+          plus((p[i].x+q.x)/2, (p[i].y+q.y)/2);
+        }
+      }
+      p.forEach((q,i)=> handle(q.x, q.y, i===selVert ? '#2f7de1' : '#fff', acc));
+    } else {
+      const p=S({x:o.x,y:o.y});
+      ctx.strokeStyle=acc; ctx.lineWidth=2; ctx.setLineDash([6,4]);
+      ctx.strokeRect(p.x-2,p.y-2,o.w*view.z+4,o.h*view.z+4);
+      ctx.setLineDash([]);
+      if(!o.locked) for(const [hx,hy] of [[0,0],[1,0],[1,1],[0,1]])
+        handle(p.x+hx*o.w*view.z, p.y+hy*o.h*view.z, '#fff', acc);
+    }
+  } else {
+    const p=S({x:o.x,y:o.y});
+    ctx.translate(p.x,p.y); ctx.rotate(rad(o.rot));
+    const w=o.w*view.z, h=o.h*view.z;
+    ctx.strokeStyle=acc; ctx.lineWidth=2; ctx.setLineDash([5,4]);
+    ctx.strokeRect(-w/2-2,-h/2-2,w+4,h+4); ctx.setLineDash([]);
+    if(!o.locked){
+      for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]) handle(sx*w/2, sy*h/2, '#fff', acc);
+      if(!isOpening(o)){
+        ctx.strokeStyle=acc; ctx.beginPath();
+        ctx.moveTo(0,-h/2); ctx.lineTo(0,-h/2-26); ctx.stroke();
+        handle(0,-h/2-26, '#2f7de1', acc);
+      }
+    }
+  }
+  ctx.restore();
+}
+function handle(x,y,col,ring){
+  ctx.fillStyle = col||'#fff'; ctx.strokeStyle=ring||'#f0a02c'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fill(); ctx.stroke();
+}
+function plus(x,y){
+  ctx.fillStyle='#2f7de1'; ctx.strokeStyle='#fff'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.arc(x,y,7,0,7); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle='#fff'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(x-3.2,y); ctx.lineTo(x+3.2,y);
+  ctx.moveTo(x,y-3.2); ctx.lineTo(x,y+3.2); ctx.stroke();
+}
+
+function bounds(pad=0){
+  const xs=[],ys=[];
+  state.rooms.forEach(r=>{ roomPts(r).forEach(p=>{ xs.push(p.x); ys.push(p.y); }); });
+  state.items.forEach(i=>{const m=Math.max(i.w,i.h)/2; xs.push(i.x-m,i.x+m); ys.push(i.y-m,i.y+m)});
+  if(!xs.length) return null;
+  return {x0:Math.min(...xs)-pad, y0:Math.min(...ys)-pad, x1:Math.max(...xs)+pad, y1:Math.max(...ys)+pad};
+}
+function fit(){
+  const b = bounds(120); if(!b) return;
+  const w=cv.clientWidth, h=cv.clientHeight;
+  view.z = Math.min(w/(b.x1-b.x0), h/(b.y1-b.y0));
+  view.x = b.x0 - (w/view.z - (b.x1-b.x0))/2;
+  view.y = b.y0 - (h/view.z - (b.y1-b.y0))/2;
+  draw();
+}
+
+function updateStats(){
+  const total = totalFloorArea()/10000;
+  const o = selObj();
+  let line = '';
+  if(temp && dimLen(temp) > 1){
+    const l = dimLen(temp);
+    line = `<br>${T('measuring')} <b>${Math.round(l)} cm</b> = ${(l/100).toFixed(2)} m`;
+  } else if(o && sel.kind==='dim'){
+    line = `<br>${T('dimension')} <b>${Math.round(dimLen(o))} cm</b>`;
+  } else if(o){
+    const size = (o.pts || o.name!==undefined)
+      ? `${roomPts(o).length} ${T('walls')} · ${(netArea(o)/10000).toFixed(2)} m²`
+      : `${Math.round(o.w)}×${Math.round(o.h)} cm`;
+    line = `<br>${T('selected')} <b>${o.name||o.n}</b> ${size}`;
+  }
+  document.getElementById('stats').innerHTML =
+    `${T('rooms')} <b>${state.rooms.length}</b> · ${T('items')} <b>${state.items.length}</b> · ${T('floor')} <b>${total.toFixed(2)} m²</b>` + line;
+}
+
+// ---------- hit testing ----------
+function local(it, p){
+  const d = rot(p.x-it.x, p.y-it.y, -rad(it.rot));
+  return d;
+}
+const touchK = () => touchMode ? 1.9 : 1;      // fingers need bigger targets than a mouse
+function hitTest(pt){
+  const o = selObj();
+  if(o && !o.locked){                      // handles first
+    if(sel.kind==='item'){
+      const l = local(o,pt), hw=o.w/2, hh=o.h/2, t=9*touchK()/view.z;
+      if(!isOpening(o) && Math.hypot(l.x, l.y+hh+26/view.z) < t) return {type:'rotate'};
+      const corners=[[-1,-1],[1,-1],[1,1],[-1,1]];
+      for(const [sx,sy] of corners)
+        if(Math.hypot(l.x-sx*hw, l.y-sy*hh) < t) return {type:'resize', sx, sy};
+    } else {
+      const t=9*touchK()/view.z;
+      if(o.pts){
+        const p = roomPts(o);
+        for(let i=0;i<p.length;i++)
+          if(Math.hypot(pt.x-p[i].x, pt.y-p[i].y) < t) return {type:'vertex', i};
+        for(let i=0;i<p.length;i++){        // "+" marker on the middle of wall i
+          const q=p[(i+1)%p.length];
+          if(Math.hypot(pt.x-(p[i].x+q.x)/2, pt.y-(p[i].y+q.y)/2) < 11/view.z) return {type:'addpt', i};
+        }
+      } else {
+        for(const [hx,hy] of [[0,0],[1,0],[1,1],[0,1]])
+          if(Math.hypot(pt.x-(o.x+hx*o.w), pt.y-(o.y+hy*o.h)) < t) return {type:'roomresize', hx, hy};
+      }
+    }
+  }
+  if(o && !o.locked && sel.kind==='dim'){    // dimension endpoints
+    const t=10*touchK()/view.z;
+    if(Math.hypot(pt.x-o.x1, pt.y-o.y1) < t) return {type:'dimpt', end:1};
+    if(Math.hypot(pt.x-o.x2, pt.y-o.y2) < t) return {type:'dimpt', end:2};
+  }
+  if(dimsOn) for(let i=(state.dims||[]).length-1;i>=0;i--){
+    const d=state.dims[i];
+    if(distToSeg(pt, {x:d.x1,y:d.y1}, {x:d.x2,y:d.y2}) < 9*touchK()/view.z) return {type:'dim', id:d.id};
+  }
+  for(let li=state.layers.length-1; li>=0; li--){
+    const L = state.layers[li];
+    if(!L.visible || L.locked) continue;
+    const its = itemsOfLayer(L.id);
+    for(let i=its.length-1;i>=0;i--){
+      const it=its[i], l=local(it,pt);
+      if(Math.abs(l.x)<=it.w/2 && Math.abs(l.y)<=Math.max(it.h/2, 8/view.z)) return {type:'item', id:it.id};
+    }
+  }
+  for(let i=state.rooms.length-1;i>=0;i--){
+    if(inPoly(pt, roomPts(state.rooms[i]))) return {type:'room', id:state.rooms[i].id};
+  }
+  return {type:'none'};
+}
+
+// ---------- wall snapping for doors / windows ----------
+function snapToWall(it){
+  let best=null;
+  const consider = (a, b, wrot, thick)=>{
+    const vx=b.x-a.x, vy=b.y-a.y, len=Math.hypot(vx,vy);
+    if(len < 1) return;
+    let t=((it.x-a.x)*vx + (it.y-a.y)*vy)/(len*len);
+    const half=(it.w/2)/len;
+    t=Math.max(half, Math.min(1-half, t));
+    const px=a.x+vx*t, py=a.y+vy*t, d=Math.hypot(it.x-px, it.y-py);
+    if(!best || d<best.d) best={d, px, py, rot:wrot, thick};
+  };
+  // freestanding walls: snap along their centre line and match thickness
+  for(const wl of state.items.filter(isWall)){
+    const e = rot(wl.w/2, 0, rad(wl.rot));
+    consider({x:wl.x-e.x, y:wl.y-e.y}, {x:wl.x+e.x, y:wl.y+e.y}, wl.rot, wl.h);
+  }
+  for(const r of state.rooms){
+    const p = roomPts(r);
+    for(let i=0;i<p.length;i++){
+      const a=p[i], b=p[(i+1)%p.length];
+      const ang = Math.round(Math.atan2(b.y-a.y, b.x-a.x)*180/Math.PI);
+      consider(a, b, ang, wallOf(r));
+    }
+  }
+  if(best && best.d < 90){
+    it.x=Math.round(best.px); it.y=Math.round(best.py); it.rot=best.rot;
+    it.h = Math.max(4, best.thick);
+  }
+}
+
+// ---------- interaction ----------
+let drag=null, panning=false, spaceDown=false, hoverPt=null;
+const touches = new Map();          // active pointers, for pinch and two-finger pan
+let pinch = null, touchMode = false;
+const gap2 = () => {
+  const [a,b] = [...touches.values()];
+  return {d:Math.hypot(a.x-b.x, a.y-b.y), c:{x:(a.x+b.x)/2, y:(a.y+b.y)/2}};
+};
+cv.addEventListener('pointerdown', e=>{
+  cv.setPointerCapture(e.pointerId);
+  if(e.pointerType === 'touch'){
+    touchMode = true;
+    touches.set(e.pointerId, {x:e.offsetX, y:e.offsetY});
+    if(typeof mobile === 'function' && mobile()) closeDrawers();
+    if(touches.size === 2){                       // second finger: zoom & pan, cancel any drag
+      if(drag && history.length) undo();          // roll back the accidental one-finger move
+      drag = null; panning = false; svcDraft = svcDraft && null;
+      const g = gap2();
+      pinch = {d0:g.d, z0:view.z, world:W(g.c)};
+      return;
+    }
+    if(touches.size > 2) return;
+  }
+  if(typeof activeTab !== 'undefined' && activeTab === 'svc'){
+    if(e.button===1 || spaceDown){ panning={sx:e.offsetX, sy:e.offsetY, vx:view.x, vy:view.y}; return; }
+    svcPointerDown(e); return;
+  }
+  const p = W({x:e.offsetX, y:e.offsetY});
+  if(e.button===1 || spaceDown){ panning={sx:e.offsetX, sy:e.offsetY, vx:view.x, vy:view.y}; return; }
+
+  if(tool !== 'select'){                     // measuring / placing a dimension
+    const s = snapPoint(p);
+    temp = {kind:tool, x1:s.x, y1:s.y, x2:s.x, y2:s.y, s1:s.snapped, s2:s.snapped};
+    drag = {mode:'draw'};
+    sel = null; renderProps(); draw();
+    return;
+  }
+  const h = hitTest(p);
+
+  if(h.type==='dim'){
+    sel={kind:'dim', id:h.id}; selVert=-1; renderProps();
+    const o=selObj();
+    if(o.locked){ draw(); return; }
+    push(); drag={mode:'movedim', ox:p.x-o.x1, oy:p.y-o.y1};
+    draw(); return;
+  }
+  if(h.type==='dimpt'){ push(); drag={mode:'dimpt', end:h.end}; draw(); return; }
+
+  if(h.type==='item' || h.type==='room'){
+    if(!sel || sel.id!==h.id) selVert = -1;
+    sel = {kind:h.type, id:h.id}; renderProps();
+    const o = selObj();
+    if(o.locked){ draw(); return; }         // locked: selectable, not movable
+    push();
+    drag = {mode:'move', ox:p.x-o.x, oy:p.y-o.y};
+  } else if(h.type==='rotate'){ push(); drag={mode:'rotate'}; }
+  else if(h.type==='resize'){
+    push();
+    const o=selObj();
+    const anchorL={x:-h.sx*o.w/2, y:-h.sy*o.h/2};
+    const aw=rot(anchorL.x, anchorL.y, rad(o.rot));
+    drag={mode:'resize', sx:h.sx, sy:h.sy, ax:o.x+aw.x, ay:o.y+aw.y};
+  }
+  else if(h.type==='roomresize'){ push(); drag={mode:'roomresize', hx:h.hx, hy:h.hy}; }
+  else if(h.type==='vertex'){
+    const o=selObj();
+    if(e.altKey){                            // alt-click removes this corner
+      if(o.pts.length<=3){ toast('A room needs at least 3 walls'); }
+      else { push(); o.pts.splice(h.i,1); selVert=-1; drawAll(); return; }
+    }
+    selVert = h.i; push(); drag={mode:'vertex', i:h.i};
+  }
+  else if(h.type==='addpt'){                 // "+" on a wall: split exactly that wall
+    const o=selObj(); push();
+    const p1=roomPts(o)[h.i], p2=roomPts(o)[(h.i+1)%o.pts.length];
+    o.pts.splice(h.i+1, 0, {x:snapV((p1.x+p2.x)/2)-o.x, y:snapV((p1.y+p2.y)/2)-o.y});
+    selVert = h.i+1;
+    drag={mode:'vertex', i:h.i+1};           // drag the new corner straight away
+    renderProps();
+  }
+  else { sel=null; selVert=-1; renderProps(); panning={sx:e.offsetX, sy:e.offsetY, vx:view.x, vy:view.y}; }
+  draw();
+});
+
+cv.addEventListener('pointermove', e=>{
+  if(e.pointerType === 'touch' && touches.has(e.pointerId)){
+    touches.set(e.pointerId, {x:e.offsetX, y:e.offsetY});
+    if(touches.size >= 2 && pinch){
+      const g = gap2();
+      view.z = Math.min(4, Math.max(0.05, pinch.z0 * (g.d / Math.max(pinch.d0, 1))));
+      const after = W(g.c);                        // keep the point under the fingers still
+      view.x += pinch.world.x - after.x;
+      view.y += pinch.world.y - after.y;
+      draw();
+      return;
+    }
+  }
+  if(typeof activeTab !== 'undefined' && activeTab === 'svc' && !panning){ svcPointerMove(e); if(!panning) return; }
+  if(tool !== 'select' && !panning){
+    hoverPt = W({x:e.offsetX, y:e.offsetY});
+    if(!drag){ draw(); return; }
+  }
+  if(panning){
+    view.x = panning.vx - (e.offsetX-panning.sx)/view.z;
+    view.y = panning.vy - (e.offsetY-panning.sy)/view.z;
+    draw(); return;
+  }
+  if(!drag) return;
+  const p = W({x:e.offsetX, y:e.offsetY});
+
+  if(drag.mode==='draw'){
+    const s = snapPoint(p);
+    if(e.shiftKey){                          // shift = lock to horizontal / vertical
+      if(Math.abs(s.x-temp.x1) > Math.abs(s.y-temp.y1)) s.y = temp.y1; else s.x = temp.x1;
+    }
+    temp.x2=s.x; temp.y2=s.y; temp.s2=s.snapped; draw(); return;
+  }
+  const o = selObj(); if(!o) return;
+
+  if(drag.mode==='movedim'){
+    const dx = snapV(p.x-drag.ox) - o.x1, dy = snapV(p.y-drag.oy) - o.y1;
+    o.x1+=dx; o.y1+=dy; o.x2+=dx; o.y2+=dy;
+  }
+  else if(drag.mode==='dimpt'){
+    const s = snapPoint(p);
+    if(drag.end===1){ o.x1=s.x; o.y1=s.y; o.s1=s.snapped; } else { o.x2=s.x; o.y2=s.y; o.s2=s.snapped; }
+  }
+  else if(drag.mode==='move'){
+    o.x = snapV(p.x-drag.ox); o.y = snapV(p.y-drag.oy);
+    if(sel.kind==='item' && isOpening(o)) snapToWall(o);
+  }
+  else if(drag.mode==='rotate'){
+    let a = Math.atan2(p.y-o.y, p.x-o.x)*180/Math.PI + 90;
+    o.rot = snapOn ? Math.round(a/15)*15 : Math.round(a);
+  }
+  else if(drag.mode==='resize'){
+    const l = rot(p.x-drag.ax, p.y-drag.ay, -rad(o.rot));
+    const nw = Math.max(10, snapV(Math.abs(l.x))), nh = Math.max(10, snapV(Math.abs(l.y)));
+    o.w=nw; o.h = isOpening(o) ? o.h : nh;
+    const c = rot(drag.sx*o.w/2, drag.sy*o.h/2, rad(o.rot));
+    o.x = Math.round(drag.ax + c.x); o.y = Math.round(drag.ay + c.y);
+  }
+  else if(drag.mode==='vertex'){
+    o.pts[drag.i] = {x: snapV(p.x)-o.x, y: snapV(p.y)-o.y};
+  }
+  else if(drag.mode==='roomresize'){
+    const x2 = drag.hx ? snapV(p.x) : o.x+o.w, x1 = drag.hx ? o.x : snapV(p.x);
+    const y2 = drag.hy ? snapV(p.y) : o.y+o.h, y1 = drag.hy ? o.y : snapV(p.y);
+    o.x=Math.min(x1,x2); o.y=Math.min(y1,y2);
+    o.w=Math.max(60,Math.abs(x2-x1)); o.h=Math.max(60,Math.abs(y2-y1));
+  }
+  draw(); renderProps(true);
+});
+
+cv.addEventListener('pointerup',     e=>{ touches.delete(e.pointerId); if(touches.size<2) pinch=null; });
+cv.addEventListener('pointercancel', e=>{ touches.delete(e.pointerId); if(touches.size<2) pinch=null; });
+
+const endDrag = ()=>{
+  if(drag && drag.mode==='draw'){
+    if(temp && dimLen(temp) >= 5 && tool==='dim'){
+      push();
+      state.dims = state.dims || [];
+      const d = {id:nid(), x1:temp.x1, y1:temp.y1, x2:temp.x2, y2:temp.y2, label:''};
+      state.dims.push(d);
+      sel = {kind:'dim', id:d.id};
+      temp = null;
+      renderProps();
+    } else if(!temp || dimLen(temp) < 5){ temp = null; }
+    drag=null; draw(); autosave(); return;
+  }
+  if(drag||panning){ drag=null; panning=false; autosave(); }
+};
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+
+cv.addEventListener('dblclick', ()=>{ if(activeTab==='svc' && svcDraft) svcFinishRun(); });
+let lastTap = 0;
+cv.addEventListener('pointerup', e=>{
+  if(e.pointerType !== 'touch') return;
+  const now = Date.now();
+  if(now - lastTap < 300 && activeTab==='svc' && svcDraft) svcFinishRun();
+  lastTap = now;
+});
+cv.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const before = W({x:e.offsetX, y:e.offsetY});
+  view.z = Math.min(4, Math.max(0.08, view.z * (e.deltaY<0 ? 1.12 : 1/1.12)));
+  const after = W({x:e.offsetX, y:e.offsetY});
+  view.x += before.x-after.x; view.y += before.y-after.y;
+  draw();
+}, {passive:false});
+
+document.addEventListener('keydown', e=>{
+  if(e.target.tagName==='INPUT' || e.target.tagName==='SELECT') return;
+  if(e.code==='Space'){ spaceDown=true; cv.style.cursor='grab'; e.preventDefault(); }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){ e.preventDefault(); undo(); return; }
+  if(e.key==='Escape' && modal.classList.contains('open')){ closeModal(); return; }
+  if(e.key==='Escape' && activeTab==='svc'){
+    if(svcDraft) svcFinishRun();
+    else { svcTool=null; cv.style.cursor='crosshair';
+           document.querySelectorAll('#sideSvc .cat button').forEach(x=>x.classList.remove('on')); }
+    renderProps(); return;
+  }
+  if(activeTab==='svc' && (e.key==='Delete'||e.key==='Backspace') && svcSel && svcSel.kind!=='circuit'){
+    e.preventDefault(); push();
+    const svc = ensureSvc();
+    if(svcSel.kind==='pt'){
+      svc.points = svc.points.filter(x=>x.id!==svcSel.id);
+      svc.runs.forEach(r=>{ if(r.a===svcSel.id) r.a=null; if(r.b===svcSel.id) r.b=null; });
+    }
+    else svc.runs = svc.runs.filter(x=>x.id!==svcSel.id);
+    svcSel=null; drawAll(); return;
+  }
+  if(e.key==='Escape' && activeTab==='list'){ setTab('plan'); return; }
+  if(e.key==='Escape'){ tool='select'; temp=null; sel=null;
+    document.getElementById('btnMeasure').classList.remove('on');
+    document.getElementById('btnDim').classList.remove('on');
+    cv.style.cursor='crosshair'; drawAll(); return; }
+  if(e.key.toLowerCase()==='m'){ setTool('measure'); return; }
+  if(e.key.toLowerCase()==='d'){ setTool('dim'); return; }
+  const o = selObj(); if(!o) return;
+  if(e.key.toLowerCase()==='l'){ push(); o.locked=!o.locked; drawAll(); toast(o.locked?'Locked':'Unlocked'); return; }
+  if(o.locked){
+    if(['Delete','Backspace','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key) || e.key.toLowerCase()==='r'){
+      e.preventDefault(); toast('Locked — press L to unlock');
+    }
+    return;
+  }
+  const step = e.shiftKey ? 10 : 1;
+  if(sel.kind==='dim'){
+    const move=(dx,dy)=>{ o.x1+=dx; o.y1+=dy; o.x2+=dx; o.y2+=dy; drawAll(); };
+    if(e.key==='Delete'||e.key==='Backspace'){ e.preventDefault(); removeSel(); }
+    else if(e.key==='ArrowLeft'){ e.preventDefault(); move(-step,0); }
+    else if(e.key==='ArrowRight'){ e.preventDefault(); move(step,0); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); move(0,-step); }
+    else if(e.key==='ArrowDown'){ e.preventDefault(); move(0,step); }
+    return;
+  }
+  if(e.key==='Delete' || e.key==='Backspace'){ e.preventDefault(); removeSel(); }
+  else if(e.key.toLowerCase()==='r' && sel.kind==='item'){ push(); o.rot=(o.rot+90)%360; drawAll(); }
+  else if(e.key==='ArrowLeft'){ e.preventDefault(); o.x-=step; drawAll(); }
+  else if(e.key==='ArrowRight'){ e.preventDefault(); o.x+=step; drawAll(); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); o.y-=step; drawAll(); }
+  else if(e.key==='ArrowDown'){ e.preventDefault(); o.y+=step; drawAll(); }
+});
+cv.addEventListener('pointerleave', ()=>{ if(hoverPt){ hoverPt=null; draw(); } });
+document.addEventListener('keyup', e=>{ if(e.code==='Space'){ spaceDown=false; cv.style.cursor='crosshair'; } });
+
+// ---------- catalog ----------
+function catButton(def, onRemove){
+  const b = document.createElement('button');
+  b.innerHTML = `<span class="swatch" style="background:${def.c}"></span>${T(def.n)}<small>${def.w}×${def.h} cm</small>`;
+  b.draggable = true;
+  b.addEventListener('click', ()=> addItem(def, centerOfView()));
+  b.addEventListener('dragstart', ev=> ev.dataTransfer.setData('text/plain', JSON.stringify(def)));
+  if(onRemove){
+    const x = document.createElement('span');
+    x.className='x'; x.textContent='✕'; x.title='Remove this type';
+    x.addEventListener('click', ev=>{ ev.stopPropagation(); onRemove(); });
+    b.appendChild(x);
+  }
+  return b;
+}
+function renderCatalog(){
+  for(const [box, list] of Object.entries(CATALOG)){
+    const el = document.getElementById(box);
+    el.innerHTML = '';
+    list.forEach(def=> el.appendChild(catButton(def)));
+  }
+  if(typeof custom !== 'undefined') renderCustom();
+}
+
+// ---------- custom furniture types (kept across all plans) ----------
+let custom = [];
+renderCatalog();
+function renderCustom(){
+  const el = document.getElementById('catCustom');
+  el.innerHTML = '';
+  custom.forEach((def, i)=> el.appendChild(catButton(def, ()=>{
+    custom.splice(i,1); renderCustom(); persist(); toast('Type removed');
+  })));
+}
+function addCustomType(def){
+  if(!def.n || !(def.w>0) || !(def.h>0)) return toast('Give it a name and a size');
+  custom.push({t:'custom', n:def.n, w:Math.round(def.w), h:Math.round(def.h), c:def.c});
+  renderCustom(); persist();
+  toast(`"${def.n}" added to My furniture`);
+}
+const nf = document.getElementById('newForm');
+document.getElementById('newType').onclick = ()=>{
+  nf.style.display = nf.style.display==='none' ? 'block' : 'none';
+  if(nf.style.display==='block') document.getElementById('ntName').focus();
+};
+document.getElementById('ntCancel').onclick = ()=>{ nf.style.display='none'; };
+document.getElementById('ntSave').onclick = ()=>{
+  addCustomType({
+    n: document.getElementById('ntName').value.trim(),
+    w: parseFloat(document.getElementById('ntW').value),
+    h: parseFloat(document.getElementById('ntH').value),
+    c: document.getElementById('ntC').value
+  });
+  document.getElementById('ntName').value='';
+  nf.style.display='none';
+};
+document.getElementById('fromSel').onclick = ()=>{
+  const o = selObj();
+  if(!o || sel.kind!=='item' || isOpening(o) || isWall(o)) return toast('Select a piece of furniture first');
+  addCustomType({n:o.n, w:o.w, h:o.h, c:o.c});
+};
+cv.addEventListener('dragover', e=>e.preventDefault());
+cv.addEventListener('drop', e=>{
+  e.preventDefault();
+  try{
+    const def = JSON.parse(e.dataTransfer.getData('text/plain'));
+    const r = cv.getBoundingClientRect();
+    addItem(def, W({x:e.clientX-r.left, y:e.clientY-r.top}));
+  }catch(err){}
+});
+const centerOfView = ()=> W({x:cv.clientWidth/2, y:cv.clientHeight/2});
+
+function addItem(def, pos){
+  push();
+  ensureLayers();
+  const it = {id:nid(), t:def.t, n:T(def.n), w:def.w, h:def.h, rot:0, c:def.c, op:def.op||null,
+              flip:false, layer:activeLayer, x:snapV(pos.x), y:snapV(pos.y)};
+  if(isOpening(it)) snapToWall(it);
+  state.items.push(it);
+  sel = {kind:'item', id:it.id};
+  drawAll();
+}
+function addRoom(){
+  push();
+  const c = centerOfView();
+  const r = {id:nid(), name:'Room '+(state.rooms.length+1), x:snapV(c.x-200), y:snapV(c.y-150), w:400, h:300};
+  state.rooms.push(r); sel={kind:'room', id:r.id}; drawAll();
+}
+function addPolyRoom(n){
+  push();
+  const c = centerOfView(), R = 220, pts = [];
+  for(let i=0;i<n;i++){
+    const a = -Math.PI/2 + i*2*Math.PI/n;
+    pts.push({x: snapV(R*Math.cos(a)), y: snapV(R*Math.sin(a))});
+  }
+  const r = {id:nid(), name:'Room '+(state.rooms.length+1), x:snapV(c.x), y:snapV(c.y), pts};
+  state.rooms.push(r); sel={kind:'room', id:r.id}; drawAll();
+}
+function addInnerRoom(){
+  const host = sel && sel.kind==='room' ? getRoom(sel.id) : state.rooms[state.rooms.length-1];
+  if(!host) return toast('Select a room first');
+  push();
+  const p = roomPts(host);
+  const x0=Math.min(...p.map(q=>q.x)), y0=Math.min(...p.map(q=>q.y));
+  const x1=Math.max(...p.map(q=>q.x)), y1=Math.max(...p.map(q=>q.y));
+  const w = Math.max(80, Math.round((x1-x0)*0.4/5)*5), h = Math.max(80, Math.round((y1-y0)*0.4/5)*5);
+  const r = {id:nid(), name:'Inner room', inner:true, x:snapV(x1-w-30), y:snapV(y0+30), w, h};
+  state.rooms.push(r);            // last in the list = drawn on top of its host
+  sel={kind:'room', id:r.id}; drawAll();
+}
+function removeSel(){
+  if(!sel) return;
+  const o = selObj();
+  if(o && o.locked) return toast('Locked — unlock it first');
+  push();
+  if(sel.kind==='room') state.rooms = state.rooms.filter(r=>r.id!==sel.id);
+  else if(sel.kind==='dim') state.dims = (state.dims||[]).filter(d=>d.id!==sel.id);
+  else state.items = state.items.filter(i=>i.id!==sel.id);
+  sel=null; drawAll();
+}
+function duplicate(){
+  const o = selObj(); if(!o) return; push();
+  if(sel.kind==='dim'){
+    const c = {...o, id:nid(), x1:o.x1+30, y1:o.y1+30, x2:o.x2+30, y2:o.y2+30};
+    state.dims.push(c); sel={kind:'dim', id:c.id}; drawAll(); return;
+  }
+  const copy = {...o, id:nid(), x:o.x+30, y:o.y+30};
+  if(o.pts) copy.pts = o.pts.map(p=>({...p}));
+  if(sel.kind==='room'){ copy.name = o.name+' copy'; state.rooms.push(copy); }
+  else state.items.push(copy);
+  sel = {kind:sel.kind, id:copy.id}; drawAll();
+}
+
+// ---------- properties panel ----------
+function renderProps(valuesOnly){
+  const box = document.getElementById('props');
+  if(typeof activeTab !== 'undefined' && activeTab === 'svc'){ renderSvcProps(box); return; }
+  const o = selObj();
+  if(!o){
+    box.innerHTML = `<h3 style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px">Properties</h3>
+      <p class="empty">Nothing selected.<br><br>Add a room, then drag furniture from the left onto the plan. Click any piece to set exact size, position and angle here.</p>`;
+    return;
+  }
+  if(valuesOnly && box.dataset.id === o.id){
+    for(const k of ['w','h','x','y','rot']){
+      const f = box.querySelector(`[data-k=${k}]`);
+      if(f && document.activeElement!==f) f.value = Math.round(o[k] ?? 0);
+    }
+    return;
+  }
+  box.dataset.id = o.id;
+  if(sel.kind==='dim'){
+    const len = dimLen(o);
+    box.innerHTML = `
+      <h3 style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px">
+        ${T('Properties')} <span class="tag">${T('Dimension')}</span></h3>
+      <div style="font-family:ui-monospace,Menlo,monospace;font-size:18px;margin-bottom:10px">${Math.round(len)} cm
+        <span style="color:var(--muted);font-size:12px">= ${(len/100).toFixed(2)} m</span></div>
+      <div class="f" style="margin-bottom:8px"><label>Note</label>
+        <input data-d="label" value="${(o.label||'').replace(/"/g,'&quot;')}" placeholder="e.g. wardrobe gap"></div>
+      <div class="row">
+        <div class="f"><label>X1 cm</label><input data-d="x1" type="number" value="${Math.round(o.x1)}"></div>
+        <div class="f"><label>Y1 cm</label><input data-d="y1" type="number" value="${Math.round(o.y1)}"></div>
+      </div>
+      <div class="row">
+        <div class="f"><label>X2 cm</label><input data-d="x2" type="number" value="${Math.round(o.x2)}"></div>
+        <div class="f"><label>Y2 cm</label><input data-d="y2" type="number" value="${Math.round(o.y2)}"></div>
+      </div>
+      <div class="stack">
+        <div class="inline"><button id="dHoriz">Make horizontal</button><button id="dVert">Make vertical</button></div>
+        <div class="inline">
+          <button id="pLock" class="${o.locked?'on':''}">${o.locked?'Unlock':'Lock'}</button>
+          <button id="pDup">Duplicate</button><button id="pDel" class="danger">Delete</button>
+        </div>
+      </div>`;
+    box.querySelectorAll('input').forEach(inp=>{
+      if(o.locked) inp.disabled = true;
+      inp.addEventListener('input', ()=>{
+        const k = inp.dataset.d;
+        if(k==='label') o.label = inp.value;
+        else { const v=parseFloat(inp.value); if(!isNaN(v)) o[k]=v; }
+        draw(); autosave();
+      });
+    });
+    const onD=(id,fn)=>{ const el=box.querySelector('#'+id); if(el) el.addEventListener('click',fn); };
+    onD('dHoriz', ()=>{ push(); o.y2=o.y1; drawAll(); });
+    onD('dVert',  ()=>{ push(); o.x2=o.x1; drawAll(); });
+    onD('pLock', ()=>{ push(); o.locked=!o.locked; drawAll(); });
+    onD('pDup', duplicate); onD('pDel', removeSel);
+    return;
+  }
+  const isRoom = sel.kind==='room';
+  box.innerHTML = `
+    <h3 style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px">
+      ${T('Properties')} <span class="tag">${isRoom?T('Room'):T(o.op||'Item')}</span></h3>
+    <div class="f" style="margin-bottom:8px">
+      <label>Name</label><input data-k="${isRoom?'name':'n'}" value="${(isRoom?o.name:o.n).replace(/"/g,'&quot;')}">
+    </div>
+    ${o.pts ? '' : `<div class="row">
+      <div class="f"><label>${(!isRoom && isWall(o)) ? 'Length' : 'Width'} cm</label><input data-k="w" type="number" value="${Math.round(o.w)}"></div>
+      <div class="f"><label>${isRoom ? 'Depth' : (isWall(o) ? 'Thickness' : 'Height')} cm</label><input data-k="h" type="number" value="${Math.round(o.h)}"></div>
+    </div>`}
+    <div class="row">
+      <div class="f"><label>X cm</label><input data-k="x" type="number" value="${Math.round(o.x)}"></div>
+      <div class="f"><label>Y cm</label><input data-k="y" type="number" value="${Math.round(o.y)}"></div>
+    </div>
+    ${isRoom ? `<div class="row">
+      <div class="f"><label>Wall cm</label><input data-k="wall" type="number" min="2" step="1" value="${wallOf(o)}"></div>
+      <div class="f"><label>Ceiling cm</label><input data-k="ceiling" type="number" min="150" step="5" value="${o.ceiling||260}"></div>
+    </div>` : ''}
+    ${isRoom ? '' : `<div class="row">
+      <div class="f"><label>Angle °</label><input data-k="rot" type="number" value="${Math.round(o.rot)}"></div>
+      <div class="f"><label>Colour</label><input data-k="c" type="color" value="${o.c}" style="padding:2px;height:33px"></div>
+    </div>`}
+    ${isRoom ? '' : `<div class="f" style="margin-bottom:8px"><label>Layer</label>
+      <select id="pLayer">${state.layers.map(L=>`<option value="${L.id}" ${L.id===o.layer?'selected':''}>${L.name}</option>`).join('')}</select></div>
+    ${isRoom || isWall(o) || isOpening(o) ? '' : `<div class="f" style="margin-bottom:8px"><label>Product link</label>
+      <input data-k="url" value="${(o.url||'').replace(/"/g,'&quot;')}" placeholder="https://…"></div>`}`}
+    <div class="stack">
+      ${isRoom ? `<div style="font-family:ui-monospace,Menlo,monospace;color:var(--muted)">${T('area')} ${(netArea(o)/10000).toFixed(2)} m²${roomChildren(o).length ? ` ${T('net')} (${(roomArea(o)/10000).toFixed(2)} m² ${T('incl.')} ${roomChildren(o).length}× ${T('inner room')})` : ''} · ${T('perimeter')} ${(roomPerimeter(o)/100).toFixed(2)} m · ${roomPts(o).length} ${T('walls')}</div>
+                  ${o.pts ? `<div style="color:var(--muted);line-height:1.5">Click a blue <b style="color:#2f7de1">+</b> on the plan to add a corner to that wall. Alt-click a corner to remove it.</div>
+                             <div class="inline"><button id="pDelPt">${selVert>=0?`${T('Remove last corner')} ${selVert+1}`:T('Remove last corner')}</button></div>`
+                          : '<div class="inline"><button id="pToPoly">Edit corners</button></div>'}
+                  <div class="inline">
+                    <button id="pFront">Bring to front</button><button id="pBack">Send to back</button>
+                  </div>`
+               : `<div class="inline">
+                    <button id="pRot">Rotate 90°</button>
+                    ${o.op==='door' ? '<button id="pFlip">Flip swing</button>'
+                      : isWall(o) ? '<button id="pStraight">Straighten</button><button id="pSnapWall">Snap to walls</button>'
+                      : '<button id="pCenter">Centre in room</button>'}
+                  </div>`}
+      <div class="inline">
+        <button id="pLock" class="${o.locked?'on':''}">${o.locked?'Unlock':'Lock'}</button>
+        <button id="pDup">Duplicate</button><button id="pDel" class="danger">Delete</button>
+      </div>
+    </div>`;
+
+  translateDOM(box);
+  box.querySelectorAll('input').forEach(inp=>{
+    if(o.locked) inp.disabled = true;
+    inp.addEventListener('input', ()=>{
+      const k = inp.dataset.k;
+      if(k==='name'||k==='n'||k==='c'||k==='url') o[k]=inp.value;
+      else {
+        const v = parseFloat(inp.value);
+        const min = (k==='wall') ? 2 : (k==='ceiling') ? 150
+                  : (k==='h' && sel.kind==='item' && isWall(o)) ? 2 : 10;
+        if(!isNaN(v)) o[k] = (k==='w'||k==='h') ? Math.max(min,v) : v;
+      }
+      draw(); autosave();
+    });
+    inp.addEventListener('change', ()=>{ if(sel.kind==='item' && isOpening(o)){ snapToWall(o); draw(); } });
+  });
+  const layerSel = box.querySelector('#pLayer');
+  if(layerSel){
+    layerSel.disabled = !!o.locked;
+    layerSel.onchange = ()=>{ push(); o.layer = layerSel.value; activeLayer = layerSel.value; drawAll(); };
+  }
+  const on = (id, fn)=>{ const el=box.querySelector('#'+id); if(el) el.addEventListener('click', fn); };
+  on('pDup', duplicate); on('pDel', removeSel);
+  on('pRot', ()=>{ push(); o.rot=(o.rot+90)%360; drawAll(); });
+  on('pFlip', ()=>{ push(); o.flip=!o.flip; drawAll(); });
+  on('pSnapWall', ()=>{
+    if(o.locked) return toast('Locked — unlock it first');
+    push(); snapWallToWalls(o);
+  });
+  on('pStraight', ()=>{ push(); o.rot=(Math.round(o.rot/90)*90+360)%360; drawAll(); });
+  on('pToPoly', ()=>{                       // convert rectangle into an editable polygon
+    push();
+    o.pts = [{x:0,y:0},{x:o.w,y:0},{x:o.w,y:o.h},{x:0,y:o.h}];
+    delete o.w; delete o.h; drawAll(); toast('Drag the corner dots to reshape');
+  });
+  on('pLock', ()=>{ push(); o.locked=!o.locked; drawAll(); toast(o.locked?'Locked':'Unlocked'); });
+  on('pDelPt', ()=>{
+    if(o.pts.length<=3) return toast('A room needs at least 3 walls');
+    push();
+    o.pts.splice(selVert>=0 ? selVert : o.pts.length-1, 1);
+    selVert=-1; drawAll();
+  });
+  on('pFront', ()=>{ push(); state.rooms = state.rooms.filter(r=>r!==o).concat([o]); drawAll(); });
+  on('pBack',  ()=>{ push(); state.rooms = [o].concat(state.rooms.filter(r=>r!==o)); drawAll(); });
+  on('pCenter', ()=>{
+    const r = state.rooms.find(r=> inPoly({x:o.x,y:o.y}, roomPts(r))) || state.rooms[state.rooms.length-1];
+    if(!r) return; push();
+    const c = roomCentre(r);
+    o.x=Math.round(c.x); o.y=Math.round(c.y); drawAll();
+  });
+}
+// ---------- shopping list module ----------
+const PRIORITIES = [['need','Need'],['want','Want'],['later','Later']];
+const prioOf = o => o.prio || 'need';
+const STATUSES = [['buy','To buy'],['ordered','Ordered'],['bought','Bought'],['owned','Already own']];
+const UNITS = [['piece','per piece'],['m2','per m²'],['m','per metre']];
+const BASES = [['floor','floor area m²'],['wall','wall area m²'],['perimeter','perimeter m'],['piece','per piece']];
+const JOB_PRESETS = [
+  ['Flooring','floor'], ['Floor tiling','floor'], ['Underfloor insulation','floor'],
+  ['Wall paint','wall'], ['Wall tiling','wall'], ['Wallpaper','wall'],
+  ['Ceiling paint','floor'], ['Skirting boards','perimeter'], ['Coving','perimeter'],
+  ['Other','piece']
+];
+const sheetEl = document.getElementById('sheet');
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money = v => (Math.round(v*100)/100).toLocaleString(undefined,{maximumFractionDigits:2});
+const num = v => (Math.round(v*100)/100).toFixed(2);
+let currency = 'Kč';
+
+const isJob = o => !!(o && o.basis);
+const isRoomRow = o => !!(o && !o.basis && o.name !== undefined);
+
+// room jobs: paint, flooring, tiling… each priced off the room's own geometry
+function roomJobs(r){
+  if(!Array.isArray(r.jobs)) r.jobs = [];
+  if(r.price !== undefined && r.price !== ''){          // migrate an old room-level price
+    r.jobs.push({id:nid(), room:r.id, n:'Flooring', basis:'floor', qty:1, price:r.price,
+                 store:r.store||'', url:r.url||'', status:r.status||'buy', note:r.note||''});
+  }
+  delete r.price; delete r.unit;
+  r.jobs.forEach(j=>{ j.room = r.id; });
+  return r.jobs;
+}
+const allJobs = () => state.rooms.flatMap(roomJobs);
+
+// components of a single piece — a shower is a tray + screen + mixer + head
+function itemParts(it){
+  if(!Array.isArray(it.parts)) it.parts = [];
+  it.parts.forEach(pt=>{ pt.of = it.id; });
+  return it.parts;
+}
+const allParts = () => state.items.flatMap(itemParts);
+const getPart = id => allParts().find(pt=>pt.id===id);
+const isPart = o => !!(o && o.of);
+const getJob = id => allJobs().find(j=>j.id===id);
+const anyById = id => getItem(id) || getRoom(id) || getJob(id) || getPart(id) || getSvcRow(id) || findGroup(id);
+
+function measureOf(o){
+  if(o && o.svcLen !== undefined) return o.svcLen;
+  if(isJob(o)){
+    const r = getRoom(o.room); if(!r) return 1;
+    if(o.basis==='floor')     return netArea(r)/10000;
+    if(o.basis==='wall')      return (roomPerimeter(r)/100) * ((r.ceiling||260)/100);
+    if(o.basis==='perimeter') return roomPerimeter(r)/100;
+    return 1;
+  }
+  const u = o.unit || 'piece';
+  if(u === 'm2') return (o.w*o.h)/10000;
+  if(u === 'm')  return o.w/100;
+  return 1;
+}
+function measureLabel(o){
+  const m = measureOf(o);
+  if(o && o.svcUnit) return o.svcUnit==='per metre' ? num(m)+' m' : (o.qty||1)+' pcs';
+  if(isJob(o)) return o.basis==='perimeter' ? num(m)+' m' : o.basis==='piece' ? '1 pc' : num(m)+' m²';
+  const u = o.unit || 'piece';
+  return u==='m2' ? num(m)+' m²' : u==='m' ? num(m)+' m' : '1 pc';
+}
+const lineTotal = o => (parseFloat(o.price)||0) * (parseInt(o.qty,10)||1) * measureOf(o);
+const partsTotal = o => (o && Array.isArray(o.parts))
+  ? o.parts.filter(prioPass).reduce((s,pt)=>s+lineTotal(pt), 0) : 0;
+// what the row displays: its own line, plus its components rolled up
+const rowTotal = o => o && o.group
+  ? o.members.reduce((s,m)=>s+lineTotal(m)+partsTotal(m), 0)
+  : lineTotal(o) + partsTotal(o);
+
+function prioPass(o){
+  const f = document.getElementById('sheetPrio').value;
+  if(f==='*') return true;
+  if(f==='needwant') return prioOf(o)!=='later';
+  return prioOf(o)===f;
+}
+function sheetItems(){
+  const showAll = document.getElementById('sheetAll').checked;
+  const pick = document.getElementById('sheetLayer').value;
+  return state.items.filter(i=>
+    (showAll || (!isWall(i) && !isOpening(i))) &&
+    (pick==='*' || i.layer===pick) &&
+    (prioPass(i) || itemParts(i).some(prioPass)));
+}
+const shownJobs = r => roomJobs(r).filter(prioPass);
+const shownParts = it => itemParts(it).filter(prioPass);
+const rowsOf = it => [...(prioPass(it) ? [it] : []), ...shownParts(it)];
+function sheetRooms(){
+  const on = document.getElementById('sheetRooms').checked;
+  const pick = document.getElementById('sheetLayer').value;
+  return (on && pick==='*') ? state.rooms : [];
+}
+// Identical pieces collapse into one priced line — but only when they really are
+// interchangeable: same name, size, unit, layer, priority, status, and no components
+// of their own. Anything split off keeps a variant letter so it stays separate.
+const groupOn = () => document.getElementById('sheetGroup').checked;
+const groupKey = it => [it.n, Math.round(it.w), Math.round(it.h), it.layer,
+                        it.unit||'piece', prioOf(it), it.status||'buy'].join('|');
+function itemGroups(){
+  const map = new Map(), singles = [];
+  sheetItems().forEach(i=>{
+    if(!groupOn() || i.solo || itemParts(i).length){ singles.push(i); return; }
+    const k = groupKey(i);
+    if(!map.has(k)) map.set(k, []);
+    map.get(k).push(i);
+  });
+  const groups = [];
+  map.forEach((members, k)=>{
+    if(members.length === 1){ singles.push(members[0]); return; }
+    const f = members[0];
+    groups.push({group:true, id:'grp:'+k, members, n:f.n, w:f.w, h:f.h, unit:f.unit,
+                 layer:f.layer, qty:members.length, price:f.price, store:f.store, url:f.url,
+                 status:f.status, prio:f.prio, note:f.note});
+  });
+  return {groups, singles};
+}
+const findGroup = id => itemGroups().groups.find(g=>g.id===id);
+
+const shownSvc = () => (document.getElementById('sheetSvc') && document.getElementById('sheetSvc').checked)
+  ? svcRows().filter(prioPass) : [];
+const allRows = () => [...sheetRooms().flatMap(shownJobs), ...sheetItems().flatMap(rowsOf), ...shownSvc()];
+
+function totalTitle(o){
+  const own = lineTotal(o), parts = partsTotal(o);
+  const base = `${o.qty||1} × ${measureLabel(o)} × ${o.price||0}`;
+  return parts
+    ? `${T('own')} ${money(own)} + ${o.parts.filter(prioPass).length} ${T('parts')} ${money(parts)} = ${money(own+parts)} ${currency}`
+    : base;
+}
+function priceCells(o){                                  // shared right-hand side of every row
+  return `
+    <td><input class="num" data-id="${o.id}" data-f="qty" type="number" min="1" value="${o.qty||1}"></td>
+    <td><input class="num" data-id="${o.id}" data-f="price" type="number" min="0" step="1" value="${o.price??''}"></td>
+    <td class="dims" data-line="${o.id}" title="${totalTitle(o)}">${rowTotal(o) ? money(rowTotal(o))+' '+esc(currency)
+        + (partsTotal(o) ? ` <span style="color:var(--muted)">∑</span>` : '') : '—'}</td>
+    <td><input data-id="${o.id}" data-f="store" value="${esc(o.store)}" placeholder="IKEA…"></td>
+    <td><input data-id="${o.id}" data-f="url" value="${esc(o.url)}" placeholder="https://…"></td>
+    <td><select data-id="${o.id}" data-f="prio" class="pr-${prioOf(o)}">
+      ${PRIORITIES.map(([v,l])=>`<option value="${v}" ${prioOf(o)===v?'selected':''}>${T(l)}</option>`).join('')}</select></td>
+    <td><select data-id="${o.id}" data-f="status" class="st-${o.status||'buy'}">
+      ${STATUSES.map(([v,l])=>`<option value="${v}" ${ (o.status||'buy')===v ? 'selected':''}>${T(l)}</option>`).join('')}</select></td>
+    <td><input data-id="${o.id}" data-f="note" value="${esc(o.note)}"></td>`;
+}
+function itemRow(i){
+  const u = i.unit || 'piece';
+  const solo = i.solo || i.variant;
+  return `<tr>
+    <td><input data-id="${i.id}" data-f="n" value="${esc(i.n)}">${
+      i.variant ? `<span style="color:var(--muted);font-size:10px;padding-left:4px">${T('variant')} ${esc(i.variant)}</span>` : ''}</td>
+    <td class="dims">${Math.round(i.w)}×${Math.round(i.h)} cm</td>
+    <td><select data-id="${i.id}" data-f="unit">
+      ${UNITS.map(([v,l])=>`<option value="${v}" ${u===v?'selected':''}>${T(l)}</option>`).join('')}</select></td>
+    <td class="dims">${measureLabel(i)}</td>
+    ${priceCells(i)}
+    <td class="act">
+      <button class="mini open${i.url?'':' off'}" data-act="open" data-id="${i.id}">Open ↗</button>
+      <button class="mini" data-act="locate" data-id="${i.id}">Find</button>
+      <button class="mini" data-act="addpart" data-id="${i.id}" title="Add a component">+ Part</button>
+      ${solo ? `<button class="mini" data-act="regroup" data-id="${i.id}" title="${T('Allow this to group again')}">${T('Group')}</button>` : ''}
+    </td></tr>`;
+}
+function jobRow(j){
+  return `<tr class="job">
+    <td><input data-id="${j.id}" data-f="n" value="${esc(j.n)}" style="margin-left:14px;width:calc(100% - 14px)"></td>
+    <td class="dims">—</td>
+    <td><select data-id="${j.id}" data-f="basis">
+      ${BASES.map(([v,l])=>`<option value="${v}" ${j.basis===v?'selected':''}>${T(l)}</option>`).join('')}</select></td>
+    <td class="dims">${measureLabel(j)}</td>
+    ${priceCells(j)}
+    <td class="act">
+      <button class="mini open${j.url?'':' off'}" data-act="open" data-id="${j.id}">Open ↗</button>
+      <button class="mini" data-act="deljob" data-id="${j.id}">✕</button>
+    </td></tr>`;
+}
+function groupRow(g){
+  return `<tr>
+    <td><input data-id="${g.id}" data-f="n" value="${esc(g.n)}">
+        <span style="color:var(--accent);font-size:10px;padding-left:4px">×${g.qty}</span></td>
+    <td class="dims">${Math.round(g.w)}×${Math.round(g.h)} cm</td>
+    <td><select data-id="${g.id}" data-f="unit">
+      ${UNITS.map(([v,l])=>`<option value="${v}" ${(g.unit||'piece')===v?'selected':''}>${T(l)}</option>`).join('')}</select></td>
+    <td class="dims">${measureLabel(g)}</td>
+    ${priceCells(g).replace('data-f="qty"', 'data-f="qty" readonly title="counted from the plan"')}
+    <td class="act">
+      <button class="mini open${g.url?'':' off'}" data-act="open" data-id="${g.id}">Open ↗</button>
+      <button class="mini" data-act="locate" data-id="${g.members[0].id}">Find</button>
+      <button class="mini" data-act="split" data-id="${g.id}"
+        title="${T('Price these separately — different fronts, colours, interiors')}">${T('Split')}</button>
+    </td></tr>`;
+}
+
+function partRow(pt){
+  return `<tr class="job">
+    <td><input data-id="${pt.id}" data-f="n" value="${esc(pt.n)}" style="margin-left:14px;width:calc(100% - 14px)"></td>
+    <td class="dims">—</td>
+    <td class="dims">${T('part')}</td>
+    <td class="dims">—</td>
+    ${priceCells(pt)}
+    <td class="act">
+      <button class="mini open${pt.url?'':' off'}" data-act="open" data-id="${pt.id}">Open ↗</button>
+      <button class="mini" data-act="delpart" data-id="${pt.id}">✕</button>
+    </td></tr>`;
+}
+
+function svcRow(o){
+  return `<tr class="job">
+    <td><input value="${esc(o.n)}" readonly style="margin-left:14px;width:calc(100% - 14px)"></td>
+    <td class="dims">—</td>
+    <td class="dims">${T(o.svcUnit)}</td>
+    <td class="dims">${measureLabel(o)}</td>
+    ${priceCells(o).replace('data-f="qty"', 'data-f="qty" readonly title="counted from the plan"')}
+    <td class="act">
+      <button class="mini open${o.url?'':' off'}" data-act="open" data-id="${o.id}">Open ↗</button>
+    </td></tr>`;
+}
+
+function roomHeadRow(r){
+  const jobs = shownJobs(r), sub = jobs.reduce((s,j)=>s+lineTotal(j),0);
+  return `<tr class="sub">
+    <td><input data-id="${r.id}" data-f="name" value="${esc(r.name)}" style="font-weight:700"></td>
+    <td class="dims">${num(netArea(r)/10000)} m² · ${num(roomPerimeter(r)/100)} m</td>
+    <td colspan="2" class="dims">${T("ceiling")}
+      <input class="num" data-id="${r.id}" data-f="ceiling" type="number" min="150" step="5"
+             value="${r.ceiling||260}" style="width:66px"> cm</td>
+    <td colspan="2" style="text-align:right;color:var(--muted)">${T("room subtotal")}</td>
+    <td class="dims" data-subroom="${r.id}">${sub ? money(sub)+' '+esc(currency) : '—'}</td>
+    <td colspan="5"></td>
+    <td class="act">
+      <select data-act="addjob" data-id="${r.id}" style="width:120px">
+        <option value="">+ Add item…</option>
+        ${JOB_PRESETS.map(([n,b])=>`<option value="${n}|${b}">${T(n)}</option>`).join('')}
+      </select>
+    </td></tr>`;
+}
+
+function renderSheet(){
+  ensureLayers();
+  const sel2 = document.getElementById('sheetLayer');
+  const keep = sel2.value || '*';
+  sel2.innerHTML = '<option value="*">All layers</option>' +
+    state.layers.map(L=>`<option value="${L.id}" ${L.id===keep?'selected':''}>${esc(L.name)}</option>`).join('');
+  sel2.value = state.layers.some(L=>L.id===keep) ? keep : '*';
+
+  const t = document.getElementById('sheetTable');
+  const rooms = sheetRooms().filter(r=> shownJobs(r).length || document.getElementById('sheetPrio').value==='*');
+  const items = sheetItems();
+  if(!rooms.length && !items.length && !shownSvc().length){
+    t.innerHTML = '<tr><td class="empty">'+T('Nothing to list yet — place some furniture on the plan first.')+'</td></tr>';
+    updateSheetTotals(); return;
+  }
+  const head = `<thead><tr>
+    <th style="width:15%">Item</th><th>Size</th><th style="width:10%">Priced by</th><th>Amount</th>
+    <th style="width:5%">Qty</th><th style="width:8%">Unit price</th><th style="width:10%">Total price</th>
+    <th style="width:9%">Store</th><th style="width:12%">Product link</th>
+    <th style="width:8%">Priority</th><th style="width:8%">Status</th><th style="width:10%">Note</th><th></th>
+  </tr></thead>`;
+
+  let body = '';
+  if(rooms.length){
+    const sub = rooms.flatMap(shownJobs).reduce((s,j)=>s+lineTotal(j),0);
+    body += `<tr class="grp"><td colspan="13">${T("Rooms — building work")}</td></tr>`;
+    rooms.forEach(r=>{
+      const js = shownJobs(r);
+      if(!js.length && document.getElementById('sheetPrio').value!=='*') return;
+      body += roomHeadRow(r) + js.map(jobRow).join('');
+    });
+    body += `<tr class="sum"><td colspan="6" style="text-align:right">${T("Building work subtotal")}</td><td colspan="7" data-sub="rooms">${money(sub)} ${esc(currency)}</td></tr>`;
+  }
+  state.layers.forEach(L=>{
+    const its = items.filter(i=>i.layer===L.id);
+    if(!its.length) return;
+    const sub = its.flatMap(rowsOf).reduce((s,i)=>s+lineTotal(i),0);
+    const gs = itemGroups();
+    const inLayer = o => (o.group ? o.layer : o.layer) === L.id;
+    const groupsHere  = gs.groups.filter(inLayer);
+    const singlesHere = gs.singles.filter(inLayer);
+    const nParts = its.reduce((n,i)=>n+shownParts(i).length,0);
+    const nLines = groupsHere.length + singlesHere.filter(prioPass).length;
+    body += `<tr class="grp"><td colspan="13">${esc(L.name)} — ${its.length} ${T("items")}${
+      nLines!==its.length?` ${T('in')} ${nLines} ${T('lines')}`:''}${nParts?` + ${nParts} ${T('parts')}`:''}</td></tr>`
+          + groupsHere.map(groupRow).join('')
+          + singlesHere.map(i=> (prioPass(i) ? itemRow(i) : '') + shownParts(i).map(partRow).join('')).join('')
+          + `<tr class="sum"><td colspan="6" style="text-align:right">${T("Subtotal")}</td><td colspan="7" data-sub="${L.id}">${money(sub)} ${esc(currency)}</td></tr>`;
+  });
+
+  const svcR = shownSvc();
+  if(svcR.length){
+    const sub = svcR.reduce((s,o)=>s+lineTotal(o),0);
+    body += `<tr class="grp"><td colspan="13">${T('Services — electricity & plumbing')}</td></tr>`
+          + svcR.map(svcRow).join('')
+          + `<tr class="sum"><td colspan="6" style="text-align:right">${T('Subtotal')}</td><td colspan="7" data-sub="svc">${money(sub)} ${esc(currency)}</td></tr>`;
+  }
+  t.innerHTML = head + '<tbody>' + body + '</tbody>';
+  translateDOM(t);
+  updateSheetTotals();
+}
+
+function refreshTotals(){
+  const t = document.getElementById('sheetTable');
+  const all = [...state.rooms.flatMap(roomJobs), ...state.items, ...allParts(), ...svcRows(),
+               ...itemGroups().groups];
+  t.querySelectorAll('[data-line]').forEach(td=>{
+    const o = all.find(x=>x.id===td.dataset.line); if(!o) return;
+    td.innerHTML = rowTotal(o)
+      ? money(rowTotal(o))+' '+esc(currency) + (partsTotal(o) ? ' <span style="color:var(--muted)">∑</span>' : '')
+      : '—';
+    td.title = totalTitle(o);
+  });
+  t.querySelectorAll('[data-subroom]').forEach(td=>{
+    const r = getRoom(td.dataset.subroom); if(!r) return;
+    const sub = shownJobs(r).reduce((s,j)=>s+lineTotal(j),0);
+    td.textContent = sub ? money(sub)+' '+currency : '—';
+  });
+  t.querySelectorAll('[data-sub]').forEach(td=>{
+    const key = td.dataset.sub;
+    const sub = key==='svc'
+      ? shownSvc().reduce((s,o)=>s+lineTotal(o),0)
+      : key==='rooms'
+      ? sheetRooms().flatMap(shownJobs).reduce((s,j)=>s+lineTotal(j),0)
+      : sheetItems().filter(i=>i.layer===key).flatMap(rowsOf).reduce((s,i)=>s+lineTotal(i),0);
+    td.textContent = money(sub)+' '+currency;
+  });
+  updateSheetTotals();
+}
+
+function updateSheetTotals(){
+  const rows = allRows();
+  const byPrio = pr => rows.filter(o=>prioOf(o)===pr).reduce((s,o)=>s+lineTotal(o),0);
+  const total = rows.reduce((s,o)=>s+lineTotal(o),0);
+  const left  = rows.filter(o=>(o.status||'buy')==='buy').reduce((s,o)=>s+lineTotal(o),0);
+  const area  = sheetRooms().reduce((s,r)=>s+netArea(r),0)/10000;
+  document.getElementById('sheetTotals').innerHTML =
+    `${rows.length} ${T('lines')}${area?` · ${num(area)} ${T('m² floor')}`:''}` +
+    ` · ${T('Need')} <b>${money(byPrio('need'))} ${esc(currency)}</b>` +
+    ` · ${T('Want')} ${money(byPrio('want'))} · ${T('Later')} ${money(byPrio('later'))}` +
+    ` · ${T('still to buy')} <b>${money(left)} ${esc(currency)}</b> · ${T('total')} <b>${money(total)} ${esc(currency)}</b>`;
+}
+
+document.getElementById('sheetTable').addEventListener('input', e=>{
+  const id = e.target.dataset.id, f = e.target.dataset.f;
+  if(!id || !f) return;
+  const o = anyById(id); if(!o) return;
+  if(o.group){                                  // one edit, every identical piece
+    const v = e.target.value;
+    o.members.forEach(m=>{
+      if(f==='price') m.price = v==='' ? '' : Math.max(0, parseFloat(v)||0);
+      else if(f==='qty') return;
+      else m[f] = v;
+    });
+    if(f==='n') draw();
+    refreshTotals(); autosave(); return;
+  }
+  if(f==='qty'){ if(o.svcUnit) return; o.qty = Math.max(1, parseInt(e.target.value,10)||1); }
+  else if(f==='price') o.price = e.target.value==='' ? '' : Math.max(0, parseFloat(e.target.value)||0);
+  else if(f==='ceiling'){ o.ceiling = Math.max(150, parseFloat(e.target.value)||260); renderSheet(); autosave(); return; }
+  else o[f] = e.target.value;
+  if(f==='url'){
+    const btn = e.target.closest('tr').querySelector('[data-act=open]');
+    if(btn) btn.classList.toggle('off', !e.target.value.trim());
+  }
+  if(f==='n' || f==='name') draw();
+  refreshTotals(); autosave();
+});
+document.getElementById('sheetTable').addEventListener('change', e=>{
+  const id = e.target.dataset.id, f = e.target.dataset.f, act = e.target.dataset.act;
+  if(act==='addpart'){ return; }
+  if(act==='addjob'){
+    const v = e.target.value; if(!v) return;
+    const [n, basis] = v.split('|');
+    const r = getRoom(id); if(!r) return;
+    push();
+    roomJobs(r).push({id:nid(), room:r.id, n, basis, qty:1, price:'', store:'', url:'', status:'buy', prio:'need', note:''});
+    renderSheet(); autosave(); toast(`"${n}" added to ${r.name}`);
+    return;
+  }
+  if(!id) return;
+  const o = anyById(id); if(!o) return;
+  if(o.group){
+    o.members.forEach(m=> m[f==='prio' ? 'prio' : f] = e.target.value);
+    renderSheet(); autosave(); return;
+  }
+  if(f==='status'){ e.target.className = 'st-'+e.target.value; refreshTotals(); autosave(); }
+  if(f==='prio'){
+    o.prio = e.target.value; e.target.className = 'pr-'+e.target.value;
+    autosave();
+    if(document.getElementById('sheetPrio').value !== '*') renderSheet(); else refreshTotals();
+  }
+  if(f==='unit' || f==='basis'){ o[f] = e.target.value; renderSheet(); autosave(); }
+});
+const openUrl = u => { u=(u||'').trim(); return u ? (/^https?:\/\//i.test(u) ? u : 'https://'+u) : null; };
+document.getElementById('sheetTable').addEventListener('click', e=>{
+  const add = e.target.closest('[data-act=addpart]');
+  if(add){
+    const it = getItem(add.dataset.id); if(!it) return;
+    push();
+    itemParts(it).push({id:nid(), of:it.id, n:T('New part'), qty:1, price:'', store:'', url:'',
+                        status:'buy', prio:prioOf(it), note:''});
+    renderSheet(); autosave();
+    return;
+  }
+  const sp = e.target.closest('[data-act=split]');
+  if(sp){
+    const g = findGroup(sp.dataset.id); if(!g) return;
+    push();
+    g.members.forEach((m,i)=>{
+      m.solo = true;
+      if(!m.variant) m.variant = String.fromCharCode(65+i);
+    });
+    renderSheet(); autosave();
+    toast(T('Split into separate lines'));
+    return;
+  }
+  const rg = e.target.closest('[data-act=regroup]');
+  if(rg){
+    const it = getItem(rg.dataset.id); if(!it) return;
+    push(); delete it.solo; delete it.variant;
+    renderSheet(); autosave();
+    return;
+  }
+  const killPart = e.target.closest('[data-act=delpart]');
+  if(killPart){
+    const pt = getPart(killPart.dataset.id); if(!pt) return;
+    const it = getItem(pt.of); if(!it) return;
+    push();
+    it.parts = it.parts.filter(x=>x.id!==pt.id);
+    renderSheet(); autosave(); toast('Line removed');
+    return;
+  }
+  const opn = e.target.closest('[data-act=open]');
+  if(opn){
+    const o = anyById(opn.dataset.id);
+    const u = o && openUrl(o.url);
+    if(!u) return toast('Paste a product link in this row first');
+    window.open(u, '_blank', 'noopener');
+    return;
+  }
+  const kill = e.target.closest('[data-act=deljob]');
+  if(kill){
+    const j = getJob(kill.dataset.id); if(!j) return;
+    const r = getRoom(j.room); if(!r) return;
+    push();
+    r.jobs = r.jobs.filter(x=>x.id!==j.id);
+    renderSheet(); autosave(); toast('Line removed');
+    return;
+  }
+  const b = e.target.closest('[data-act=locate]'); if(!b) return;
+  const it = getItem(b.dataset.id); if(!it) return;
+  const L = layerOf(it); L.visible = true;
+  sel = {kind:'item', id:it.id}; selVert=-1;
+  view.x = it.x - (cv.clientWidth/view.z)/2;
+  view.y = it.y - (cv.clientHeight/view.z)/2;
+  setTab('plan'); drawAll(); toast(`Selected "${it.n}" on the plan`);
+});
+
+function setTab(t){
+  activeTab = t;
+  const list = t==='list', svc = t==='svc';
+  sheetEl.classList.toggle('open', list);
+  document.getElementById('planBar').style.display = list ? 'none' : 'flex';
+  document.querySelector('.main').style.display = list ? 'none' : 'flex';
+  document.querySelector('.side').style.display = svc ? 'none' : '';
+  document.getElementById('sideSvc').style.display = svc ? '' : 'none';
+  document.getElementById('tabPlan').classList.toggle('active', t==='plan');
+  document.getElementById('tabSvc').classList.toggle('active', svc);
+  document.getElementById('tabList').classList.toggle('active', list);
+  document.getElementById('tabHint').textContent =
+    list ? T('Prices and links are saved with the plan')
+    : svc ? T('Heights are measured from the finished floor')
+    : '';
+  if(svc){ ensureSvc(); renderSvcPalette(); renderCircuits(); svcTool=null; svcDraft=null; }
+  if(typeof closeDrawers === 'function') closeDrawers();
+  document.getElementById('mobileBar').style.display = list ? 'none' : '';
+  sel = null; svcSel = svc ? svcSel : null;
+  renderProps();
+  if(list) renderSheet(); else { resize(); draw(); }
+}
+function setTheme(t){
+  theme = t;
+  document.body.classList.toggle('light', t === 'light');
+  document.getElementById('btnTheme').textContent = t === 'light' ? '☾' : '☀';
+  if(typeof store === 'object'){ store.theme = t; persist(); }
+  draw();
+}
+document.getElementById('btnTheme').onclick = ()=> setTheme(theme === 'light' ? 'dark' : 'light');
+document.getElementById('btnLang').onclick = ()=> setLang(lang === 'cs' ? 'en' : 'cs');
+// ---------- mobile drawers ----------
+const mobile = () => window.matchMedia('(max-width:900px)').matches;
+function closeDrawers(){
+  document.querySelectorAll('.side, .props').forEach(el=> el.classList.remove('open'));
+  document.querySelectorAll('#mobileBar button').forEach(b=> b.classList.remove('on'));
+}
+function toggleDrawer(which){
+  const el = which === 'props'
+    ? document.getElementById('props')
+    : (activeTab === 'svc' ? document.getElementById('sideSvc') : document.querySelector('.side'));
+  const open = el.classList.contains('open');
+  closeDrawers();
+  if(!open){
+    el.classList.add('open');
+    document.querySelector(`#mobileBar button[data-m=${which}]`).classList.add('on');
+  }
+}
+document.getElementById('mobileBar').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  const m = b.dataset.m;
+  if(m==='side' || m==='props') toggleDrawer(m);
+  else if(m==='fit'){ closeDrawers(); fit(); }
+  else if(m==='undo'){ closeDrawers(); undo(); }
+  else if(m==='del'){
+    closeDrawers();
+    if(activeTab==='svc' && svcSel && svcSel.kind!=='circuit'){
+      push();
+      const svc = ensureSvc();
+      if(svcSel.kind==='pt'){
+        svc.points = svc.points.filter(x=>x.id!==svcSel.id);
+        svc.runs.forEach(r=>{ if(r.a===svcSel.id) r.a=null; if(r.b===svcSel.id) r.b=null; });
+      } else svc.runs = svc.runs.filter(x=>x.id!==svcSel.id);
+      svcSel=null; drawAll();
+    } else removeSel();
+  }
+});
+// picking a catalogue item on a phone should show the plan again
+document.querySelectorAll('.cat').forEach(c=> c.addEventListener('click', ()=>{ if(mobile()) closeDrawers(); }));
+
+document.getElementById('tabPlan').onclick = ()=> setTab('plan');
+document.getElementById('tabSvc').onclick = ()=> setTab('svc');
+['svcShowElec','svcShowWater','svcHeights'].forEach(id=>
+  document.getElementById(id).onchange = ()=> draw());
+document.getElementById('svcClearTool').onclick = ()=>{
+  svcTool=null; svcDraft=null; cv.style.cursor='crosshair';
+  document.querySelectorAll('#sideSvc .cat button').forEach(x=>x.classList.remove('on'));
+  drawAll();
+};
+document.getElementById('tabList').onclick = ()=> setTab('list');
+document.getElementById('sheetLayer').onchange = renderSheet;
+document.getElementById('sheetAll').onchange = renderSheet;
+document.getElementById('sheetRooms').onchange = renderSheet;
+document.getElementById('sheetSvc').onchange = renderSheet;
+document.getElementById('sheetGroup').onchange = renderSheet;
+document.getElementById('sheetPrio').onchange = renderSheet;
+document.getElementById('currency').oninput = e=>{
+  currency = e.target.value || ''; store.currency = currency; persist(); renderSheet();
+};
+
+document.getElementById('sheetCsv').onclick = ()=>{
+  const q = v => `"${String(v==null?'':v).replace(/"/g,'""')}"`;
+  const head = ['Group','Item','Size','Priced by','Amount','Qty','Unit price','Total price','Currency','Store','Product link','Priority','Status','Note'];
+  const lines = [head.map(q).join(',')];
+  const row = (grp,o,size,byLabel)=>{
+    const st = (STATUSES.find(s=>s[0]===(o.status||'buy'))||[])[1];
+    const pr = (PRIORITIES.find(x=>x[0]===prioOf(o))||[])[1];
+    lines.push([grp, (isRoomRow(o)?o.name:o.n) + (o.variant?` (${o.variant})`:''), size, byLabel, measureLabel(o), o.qty||1,
+                o.price??'', lineTotal(o)||'', currency, o.store||'', o.url||'', pr, st, o.note||''].map(q).join(','));
+  };
+  sheetRooms().forEach(r=> shownJobs(r).forEach(j=>
+    row(r.name, j, `${num(netArea(r)/10000)} m² · ceiling ${r.ceiling||260} cm`,
+        (BASES.find(b=>b[0]===j.basis)||[])[1])));
+  const gs = itemGroups();
+  state.layers.forEach(L=>{
+    gs.groups.filter(g=>g.layer===L.id).forEach(g=>
+      row(L.name, g, Math.round(g.w)+'×'+Math.round(g.h)+' cm',
+          (UNITS.find(u=>u[0]===(g.unit||'piece'))||[])[1]));
+    gs.singles.filter(i=>i.layer===L.id).forEach(i=>{
+      if(prioPass(i))
+        row(L.name, i, Math.round(i.w)+'×'+Math.round(i.h)+' cm',
+            (UNITS.find(u=>u[0]===(i.unit||'piece'))||[])[1]);
+      shownParts(i).forEach(pt=> row(L.name + ' / ' + i.n, pt, '—', 'part'));
+    });
+  });
+  shownSvc().forEach(o=> row(T('Services'), o, '—', T(o.svcUnit)));
+  const rows = allRows();
+  lines.push('');
+  lines.push([q('TOTAL'),'','','','','','', q(rows.reduce((s,o)=>s+lineTotal(o),0)), q(currency)].join(','));
+  const name = (document.getElementById('layoutName').value.trim() || 'shopping-list');
+  offerFile('Export shopping list',
+    name.replace(/[^\w\-]+/g,'-').toLowerCase()+'-shopping-list.csv',
+    'text/csv;charset=utf-8', '\ufeff'+lines.join('\r\n'));
+};
+
+
+// ================= services module: electricity & plumbing =================
+const SVC_POINTS = [
+  {sys:'elec',  t:'socket',  n:'Socket',              g:'⏻', h:30,  c:'#e0a33d'},
+  {sys:'elec',  t:'socket2', n:'Double socket',       g:'⏻²', h:30,  c:'#e0a33d'},
+  {sys:'elec',  t:'socket4', n:'Quad socket',         g:'⏻⁴', h:30,  c:'#e0a33d'},
+  {sys:'elec',  t:'switch',  n:'Switch',              g:'S',  h:105, c:'#d98a3a'},
+  {sys:'elec',  t:'switch2', n:'Two-way switch',      g:'S²', h:105, c:'#d98a3a'},
+  {sys:'elec',  t:'dimmer',  n:'Dimmer',              g:'D',  h:105, c:'#d98a3a'},
+  {sys:'elec',  t:'ceiling', n:'Ceiling light',       g:'✳',  h:260, c:'#c9a227'},
+  {sys:'elec',  t:'wall',    n:'Wall light',          g:'◐',  h:200, c:'#c9a227'},
+  {sys:'elec',  t:'data',    n:'Data / TV socket',    g:'⌗',  h:30,  c:'#9b7fd4'},
+  {sys:'elec',  t:'box',     n:'Distribution box',    g:'DB', h:150, c:'#b06a3a'},
+  {sys:'water', t:'cold',    n:'Cold inlet',          g:'C',  h:60,  c:'#4aa3c7'},
+  {sys:'water', t:'hot',     n:'Hot inlet',           g:'H',  h:60,  c:'#e06c5f'},
+  {sys:'water', t:'mixer',   n:'Mixer pair',          g:'CH', h:60,  c:'#7f9fb5'},
+  {sys:'water', t:'valve',   n:'Valve',               g:'✕',  h:60,  c:'#5f96a0'},
+  {sys:'water', t:'waste',   n:'Waste outlet',        g:'W',  h:15,  c:'#8a8f7a'},
+  {sys:'water', t:'floor',   n:'Floor drain',         g:'⊘',  h:0,   c:'#8a8f7a'},
+  {sys:'water', t:'rad',     n:'Radiator connection', g:'R',  h:15,  c:'#c98a5f'}
+];
+const SVC_RUNS = [
+  {sys:'elec',  t:'power', n:'Power cable 3×2.5', c:'#e0a33d', dash:[]},
+  {sys:'elec',  t:'light', n:'Light cable 3×1.5', c:'#d98a3a', dash:[10,5]},
+  {sys:'elec',  t:'data',  n:'Data cable',        c:'#9b7fd4', dash:[3,4]},
+  {sys:'water', t:'cold',  n:'Cold pipe',         c:'#4aa3c7', dash:[]},
+  {sys:'water', t:'hot',   n:'Hot pipe',          c:'#e06c5f', dash:[]},
+  {sys:'water', t:'waste', n:'Waste pipe',        c:'#8a8f7a', dash:[12,6]}
+];
+const svcDef  = (t, list) => list.find(d=>d.t===t) || list[0];
+const ptDef   = t => svcDef(t, SVC_POINTS);
+const runDef  = t => svcDef(t, SVC_RUNS);
+
+const CIRCUIT_COLOURS = ['#e0a33d','#4aa3c7','#6f8f76','#9b7fd4','#e06c5f','#c9a227','#7f9fb5','#b06a3a'];
+const DEFAULT_LOAD = {socket:200, socket2:400, socket4:800, ceiling:60, wall:40, data:0, box:0,
+                      switch:0, switch2:0, dimmer:0};
+let svcTool = null;        // {mode:'point'|'run', t}
+let svcSel  = null;        // {kind:'pt'|'run', id}
+let svcDraft = null;       // run being drawn
+
+function ensureSvc(){
+  if(!state.svc) state.svc = {points:[], runs:[], circuits:[]};
+  if(!Array.isArray(state.svc.points)) state.svc.points = [];
+  if(!Array.isArray(state.svc.runs))   state.svc.runs   = [];
+  if(!Array.isArray(state.svc.circuits)) state.svc.circuits = [];
+  // older plans stored the circuit as free text — turn those into real circuits
+  const byName = {};
+  state.svc.circuits.forEach(c=>{ byName[c.name] = c; });
+  [...state.svc.points, ...state.svc.runs].forEach(o=>{
+    if(!o.circuit) return;
+    if(state.svc.circuits.some(c=>c.id===o.circuit)) return;
+    let c = byName[o.circuit];
+    if(!c){
+      c = {id:nid(), name:o.circuit, colour:CIRCUIT_COLOURS[state.svc.circuits.length % CIRCUIT_COLOURS.length],
+           breaker:16, hidden:false};
+      state.svc.circuits.push(c); byName[c.name] = c;
+    }
+    o.circuit = c.id;
+  });
+  if(!state.svcMeta) state.svcMeta = {};
+  return state.svc;
+}
+// sockets and switches live on walls, so they get a longer reach than the measuring snap
+function snapSvc(p){
+  const {pts, segs} = snapTargets();
+  const CORNER = 22/view.z, FACE = 34/view.z;
+  let best = null;
+  for(const q of pts){
+    const d = Math.hypot(p.x-q.x, p.y-q.y);
+    if(d < CORNER && (!best || d < best.d)) best = {d, q};
+  }
+  if(best) return {x:Math.round(best.q.x), y:Math.round(best.q.y), snapped:true};
+  for(const [a,b] of segs){
+    const vx=b.x-a.x, vy=b.y-a.y, l2=vx*vx+vy*vy;
+    if(!l2) continue;
+    let t = ((p.x-a.x)*vx + (p.y-a.y)*vy)/l2;
+    if(t < -0.02 || t > 1.02) continue;
+    t = Math.max(0, Math.min(1, t));
+    const q = {x:a.x+vx*t, y:a.y+vy*t}, d = Math.hypot(p.x-q.x, p.y-q.y);
+    if(d < FACE && (!best || d < best.d)) best = {d, q};
+  }
+  return best ? {x:Math.round(best.q.x), y:Math.round(best.q.y), snapped:true}
+              : {x:snapV(p.x), y:snapV(p.y), snapped:false};
+}
+const circuits = () => ensureSvc().circuits;
+const circuitOf = o => o && o.circuit ? circuits().find(c=>c.id===o.circuit) : null;
+const loadOf = pt => (pt.w !== undefined && pt.w !== '') ? (parseFloat(pt.w)||0) : (DEFAULT_LOAD[pt.t] || 0);
+function circuitLoad(c){
+  const pts = ensureSvc().points.filter(p=>p.circuit===c.id);
+  const w = pts.reduce((s,p)=>s+loadOf(p), 0);
+  const len = ensureSvc().runs.filter(r=>r.circuit===c.id).reduce((s,r)=>s+runLength(r),0)/100;
+  return {points:pts.length, w, amps:w/230, len};
+}
+const byCircuit = () => document.getElementById('svcByCircuit').checked;
+function svcColour(o, fallback){
+  const c = circuitOf(o);
+  return (byCircuit() && c) ? c.colour : fallback;
+}
+const circuitHidden = o => { const c = circuitOf(o); return !!(c && c.hidden); };
+const svcVisible = sys => document.getElementById(sys==='elec' ? 'svcShowElec' : 'svcShowWater').checked;
+const svcPointById = id => ensureSvc().points.find(p=>p.id===id);
+function svcPointAt(p, px){
+  const tol = (px||18)/view.z;
+  const list = ensureSvc().points.filter(pt=> svcVisible(ptDef(pt.t).sys));
+  let best = null;
+  list.forEach(pt=>{
+    const d = Math.hypot(p.x-pt.x, p.y-pt.y);
+    if(d < tol && (!best || d < best.d)) best = {d, pt};
+  });
+  return best ? best.pt : null;
+}
+// a run keeps its ends welded to the points it was drawn between, so moving a
+// socket drags the cable with it and the length follows
+function syncRun(r){
+  const ends = [['a', 0], ['b', r.pts.length-1]];
+  ends.forEach(([key, idx])=>{
+    const pt = r[key] && svcPointById(r[key]);
+    if(!pt || idx < 0) return;
+    const old = r.pts[idx];
+    if(!old || (old.x === pt.x && old.y === pt.y)) return;
+    const nb = r.pts[idx === 0 ? 1 : idx-1];
+    if(nb){                                    // keep the elbow square
+      if(Math.abs(nb.y - old.y) < 0.01) nb.y = pt.y; else nb.x = pt.x;
+    }
+    r.pts[idx] = {x:pt.x, y:pt.y};
+  });
+}
+const syncRuns = () => ensureSvc().runs.forEach(syncRun);
+const runLength = r => {
+  let l = 0;
+  for(let i=1;i<r.pts.length;i++) l += Math.hypot(r.pts[i].x-r.pts[i-1].x, r.pts[i].y-r.pts[i-1].y);
+  return l;                                   // cm
+};
+
+// ---- orthogonal routing: an L between the last vertex and the cursor ----
+function orthoTo(from, to){
+  const dx = Math.abs(to.x-from.x), dy = Math.abs(to.y-from.y);
+  const corner = dx >= dy ? {x:to.x, y:from.y} : {x:from.x, y:to.y};
+  return [corner, {x:to.x, y:to.y}];
+}
+
+// ---- drawing ----
+function drawSvcPoint(pt, selected){
+  const d = ptDef(pt.t), c = S({x:pt.x, y:pt.y});
+  const r = 13;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, 7);
+  ctx.fillStyle = theme==='light' ? '#ffffff' : '#f7f8f4';
+  ctx.fill();
+  ctx.lineWidth = selected ? 3 : 2;
+  const col = svcColour(pt, pt.c || d.c);
+  ctx.strokeStyle = selected ? '#f0a02c' : col;
+  ctx.stroke();
+  ctx.fillStyle = col;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.font = `700 ${d.g.length>1?10:13}px ui-sans-serif, system-ui`;
+  ctx.fillText(d.g, c.x, c.y+0.5);
+  if(document.getElementById('svcHeights').checked){
+    ctx.font = '10px ui-monospace, Menlo, monospace';
+    ctx.fillStyle = theme==='light' ? '#5c6660' : '#5c6660';
+    ctx.fillText(`${pt.h} cm`, c.x, c.y + r + 9);
+  }
+  if(pt.n){
+    ctx.font = '10px ui-sans-serif, system-ui';
+    ctx.fillStyle = '#7b8890';
+    ctx.fillText(pt.n, c.x, c.y - r - 8);
+  }
+  ctx.restore();
+}
+function drawSvcRun(r, selected){
+  const d = runDef(r.t);
+  if(r.pts.length < 2) return;
+  ctx.save();
+  const rc = svcColour(r, d.c);
+  ctx.lineWidth = selected ? 4 : 2.5;
+  ctx.strokeStyle = selected ? '#f0a02c' : rc;
+  ctx.setLineDash(d.dash.map(v=>v));
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  ctx.beginPath();
+  const p0 = S(r.pts[0]); ctx.moveTo(p0.x, p0.y);
+  for(let i=1;i<r.pts.length;i++){ const q = S(r.pts[i]); ctx.lineTo(q.x, q.y); }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // length label at the middle vertex
+  const mid = r.pts[Math.floor(r.pts.length/2)], m = S(mid);
+  const txt = `${(runLength(r)/100).toFixed(2)} m`;
+  ctx.font = '600 10px ui-monospace, Menlo, monospace';
+  const w = ctx.measureText(txt).width;
+  ctx.fillStyle = theme==='light' ? '#ffffff' : '#f7f8f4';
+  roundRect(m.x-w/2-5, m.y-9, w+10, 15, 4); ctx.fill();
+  ctx.strokeStyle = rc; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = rc; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(txt, m.x, m.y-1);
+  ['a','b'].forEach((key,i)=>{
+    if(!r[key] || !svcPointById(r[key])) return;
+    const q = S(r.pts[i===0 ? 0 : r.pts.length-1]);
+    ctx.fillStyle = rc;
+    ctx.beginPath(); ctx.arc(q.x, q.y, 4.5, 0, 7); ctx.fill();
+  });
+  if(selected){
+    r.pts.forEach(q=>{
+      const c = S(q);
+      ctx.fillStyle = '#fff'; ctx.strokeStyle = '#f0a02c'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(c.x, c.y, 5, 0, 7); ctx.fill(); ctx.stroke();
+    });
+  }
+  ctx.restore();
+}
+function drawServices(){
+  const svc = ensureSvc();
+  svc.runs.forEach(r=>{
+    if(!svcVisible(runDef(r.t).sys) || circuitHidden(r)) return;
+    drawSvcRun(r, svcSel && svcSel.kind==='run' && svcSel.id===r.id);
+  });
+  if(svcDraft && svcDraft.pts.length){
+    drawSvcRun({...svcDraft, pts:[...svcDraft.pts, ...(svcDraft.ghost||[])]}, true);
+  }
+  svc.points.forEach(pt=>{
+    if(!svcVisible(ptDef(pt.t).sys) || circuitHidden(pt)) return;
+    drawSvcPoint(pt, svcSel && svcSel.kind==='pt' && svcSel.id===pt.id);
+  });
+}
+
+// ---- circuits panel ----
+function renderCircuits(){
+  const box = document.getElementById('circList');
+  if(!box) return;
+  const cs = circuits();
+  box.innerHTML = '';
+  if(!cs.length){
+    box.innerHTML = `<div style="color:var(--muted);font-size:11px;line-height:1.5">${
+      T('No circuits yet — add one, then assign points to it.')}</div>`;
+    return;
+  }
+  cs.forEach((c, idx)=>{
+    const L = circuitLoad(c);
+    const over = c.breaker && L.amps > c.breaker * 0.8;
+    const row = document.createElement('div');
+    row.className = 'layer';
+    row.title = T('Click to select everything on this circuit');
+    row.onclick = ()=>{ svcSel = {kind:'circuit', id:c.id}; drawAll(); };
+
+    const dot = document.createElement('input');
+    dot.type='color'; dot.value=c.colour; dot.style.cssText='width:22px;height:22px;padding:0;border:0;background:none;flex:none';
+    dot.onclick = ev=> ev.stopPropagation();
+    dot.oninput = ()=>{ c.colour = dot.value; draw(); autosave(); };
+
+    const name = document.createElement('input');
+    name.className='lname'; name.value=c.name;
+    name.onclick = ev=> ev.stopPropagation();
+    name.oninput = ()=>{ c.name = name.value; autosave(); };
+
+    const amp = document.createElement('input');
+    amp.type='number'; amp.min='2'; amp.value=c.breaker||16;
+    amp.title = T('Breaker rating in amps');
+    amp.style.cssText='width:46px;padding:2px 4px;font-size:11px';
+    amp.onclick = ev=> ev.stopPropagation();
+    amp.oninput = ()=>{ c.breaker = parseFloat(amp.value)||16; renderCircuits(); autosave(); };
+
+    const eye = document.createElement('button');
+    eye.className='ico' + (c.hidden ? '' : ' act'); eye.textContent = c.hidden ? '○' : '◉';
+    eye.onclick = ev=>{ ev.stopPropagation(); c.hidden = !c.hidden; drawAll(); };
+
+    const del = document.createElement('button');
+    del.className='ico'; del.textContent='✕';
+    del.title = T('Delete circuit (points keep their place)');
+    del.onclick = ev=>{
+      ev.stopPropagation(); push();
+      ensureSvc().points.forEach(p=>{ if(p.circuit===c.id) p.circuit=null; });
+      ensureSvc().runs.forEach(r=>{ if(r.circuit===c.id) r.circuit=null; });
+      state.svc.circuits = cs.filter(x=>x.id!==c.id);
+      drawAll();
+    };
+
+    row.append(dot, name, amp, eye, del);
+    const info = document.createElement('div');
+    info.style.cssText = 'font-family:ui-monospace,Menlo,monospace;font-size:10px;padding:2px 6px 6px 30px;' +
+                         (over ? 'color:var(--danger)' : 'color:var(--muted)');
+    info.textContent = `${L.points} ${T('points')} · ${L.w} W · ${L.amps.toFixed(1)} A` +
+                       (L.len ? ` · ${L.len.toFixed(1)} m` : '') + (over ? '  ⚠ ' + T('over 80% of breaker') : '');
+    const holder = document.createElement('div');
+    holder.append(row, info);
+    box.appendChild(holder);
+  });
+  translateDOM(box);
+}
+document.getElementById('addCircuit').onclick = ()=>{
+  push();
+  const cs = circuits();
+  cs.push({id:nid(), name:T('Circuit')+' '+String.fromCharCode(65+cs.length),
+           colour:CIRCUIT_COLOURS[cs.length % CIRCUIT_COLOURS.length], breaker:16, hidden:false});
+  renderCircuits(); autosave();
+};
+document.getElementById('svcByCircuit').onchange = ()=> draw();
+
+// ---- palette ----
+function renderSvcPalette(){
+  const fill = (id, list, mode) => {
+    const el = document.getElementById(id); el.innerHTML = '';
+    list.forEach(def=>{
+      const b = document.createElement('button');
+      b.innerHTML = `<span class="swatch" style="background:${def.c}"></span>${T(def.n)}` +
+                    (mode==='point' ? `<small>${def.h} cm</small>` : `<small>${T('per metre')}</small>`);
+      b.onclick = ()=>{
+        svcTool = {mode, t:def.t};
+        svcDraft = null;
+        document.querySelectorAll('#sideSvc .cat button').forEach(x=>x.classList.remove('on'));
+        b.classList.add('on');
+        cv.style.cursor = 'copy';
+        toast(mode==='point' ? T('Click on the plan to place') : T('Click to route, Esc or double-click to finish'));
+      };
+      el.appendChild(b);
+    });
+  };
+  fill('svcElec',  SVC_POINTS.filter(d=>d.sys==='elec'),  'point');
+  fill('svcWater', SVC_POINTS.filter(d=>d.sys==='water'), 'point');
+  fill('svcCable', SVC_RUNS.filter(d=>d.sys==='elec'),    'run');
+  fill('svcPipe',  SVC_RUNS.filter(d=>d.sys==='water'),   'run');
+  translateDOM(document.getElementById('sideSvc'));
+}
+
+// ---- interaction ----
+function svcHit(p){
+  const svc = ensureSvc(), tol = 16*touchK()/view.z, vtol = 13*touchK()/view.z;
+  // a corner of the selected run wins, so you can reshape without moving the whole thing
+  if(svcSel && svcSel.kind==='run'){
+    const r = svc.runs.find(x=>x.id===svcSel.id);
+    if(r) for(let j=0;j<r.pts.length;j++)
+      if(Math.hypot(p.x-r.pts[j].x, p.y-r.pts[j].y) < vtol) return {kind:'vertex', id:r.id, vi:j};
+  }
+  for(let i=svc.points.length-1;i>=0;i--){
+    const pt = svc.points[i];
+    if(svcVisible(ptDef(pt.t).sys) && !circuitHidden(pt) && Math.hypot(p.x-pt.x, p.y-pt.y) < tol) return {kind:'pt', id:pt.id};
+  }
+  for(let i=svc.runs.length-1;i>=0;i--){
+    const r = svc.runs[i];
+    if(!svcVisible(runDef(r.t).sys) || circuitHidden(r)) continue;
+    for(let j=0;j<r.pts.length;j++)
+      if(Math.hypot(p.x-r.pts[j].x, p.y-r.pts[j].y) < vtol) return {kind:'vertex', id:r.id, vi:j};
+    for(let j=1;j<r.pts.length;j++)
+      if(distToSeg(p, r.pts[j-1], r.pts[j]) < 10/view.z) return {kind:'run', id:r.id};
+  }
+  return null;
+}
+function svcFinishRun(){
+  if(svcDraft && svcDraft.pts.length > 1){
+    push(); ensureSvc().runs.push({...svcDraft, ghost:undefined});
+    svcSel = {kind:'run', id:svcDraft.id};
+  }
+  svcDraft = null; drawAll();
+}
+function svcPointerDown(e){
+  const p = W({x:e.offsetX, y:e.offsetY});
+  const snapped = snapSvc(p);
+
+  if(svcTool && svcTool.mode === 'point'){
+    const d = ptDef(svcTool.t);
+    push();
+    ensureSvc().points.push({id:nid(), t:d.t, x:snapped.x, y:snapped.y, h:d.h, c:d.c, n:'', circuit:''});
+    svcSel = {kind:'pt', id:ensureSvc().points[ensureSvc().points.length-1].id};
+    drawAll(); return;
+  }
+  if(svcTool && svcTool.mode === 'run'){
+    const d = runDef(svcTool.t);
+    const onPt = svcPointAt(p);
+    const target = onPt ? {x:onPt.x, y:onPt.y} : {x:snapped.x, y:snapped.y};
+    if(!svcDraft){
+      svcDraft = {id:nid(), t:d.t, pts:[target], a: onPt ? onPt.id : null, circuit:''};
+      if(onPt) toast('Attached to ' + T(ptDef(onPt.t).n));
+    } else {
+      const last = svcDraft.pts[svcDraft.pts.length-1];
+      svcDraft.pts.push(...orthoTo(last, target));
+      if(onPt){ svcDraft.b = onPt.id; svcFinishRun(); return; }
+    }
+    svcDraft.ghost = [];
+    draw(); return;
+  }
+  const h = svcHit(p);
+  if(h && h.kind==='vertex'){
+    svcSel = {kind:'run', id:h.id};
+    push();
+    drag = {mode:'svcvertex', id:h.id, vi:h.vi};
+    drawAll(); return;
+  }
+  svcSel = h;
+  if(h && h.kind==='pt'){
+    const pt = ensureSvc().points.find(x=>x.id===h.id);
+    push();
+    drag = {mode:'svcpt', ox:p.x-pt.x, oy:p.y-pt.y};
+  } else if(h && h.kind==='run'){
+    const r = ensureSvc().runs.find(x=>x.id===h.id);
+    push();
+    if(r.a || r.b){ r.a = null; r.b = null; toast('Run detached from its points'); }
+    drag = {mode:'svcrun', id:r.id, ox:p.x, oy:p.y, from:r.pts.map(q=>({...q}))};
+  } else if(!h){
+    panning = {sx:e.offsetX, sy:e.offsetY, vx:view.x, vy:view.y};
+  }
+  drawAll();
+}
+function svcPointerMove(e){
+  const p = W({x:e.offsetX, y:e.offsetY});
+  if(svcDraft){
+    const last = svcDraft.pts[svcDraft.pts.length-1];
+    const onPt = svcPointAt(p);
+    svcDraft.ghost = orthoTo(last, onPt ? {x:onPt.x, y:onPt.y} : snapSvc(p));
+    draw(); return;
+  }
+  if(drag && drag.mode==='svcvertex'){
+    const r = ensureSvc().runs.find(x=>x.id===drag.id); if(!r) return;
+    const q = snapSvc(p);
+    const before = r.pts[drag.vi-1], after = r.pts[drag.vi+1];
+    r.pts[drag.vi] = {x:q.x, y:q.y};
+    // keep the neighbouring segments square
+    if(before && after){
+      if(Math.abs(before.y - r.pts[drag.vi].y) < Math.abs(before.x - r.pts[drag.vi].x)) before.y = q.y;
+      else before.x = q.x;
+      if(Math.abs(after.y - r.pts[drag.vi].y) < Math.abs(after.x - r.pts[drag.vi].x)) after.y = q.y;
+      else after.x = q.x;
+    }
+    draw(); renderProps(); return;
+  }
+  if(drag && drag.mode==='svcrun'){
+    const r = ensureSvc().runs.find(x=>x.id===drag.id); if(!r) return;
+    const dx = snapV(p.x-drag.ox), dy = snapV(p.y-drag.oy);
+    r.pts = drag.from.map(q=>({x:q.x+dx, y:q.y+dy}));
+    draw(); renderProps(); return;
+  }
+  if(drag && drag.mode==='svcpt'){
+    const pt = ensureSvc().points.find(x=>x.id===svcSel.id); if(!pt) return;
+    const q = snapSvc({x:p.x-drag.ox, y:p.y-drag.oy});
+    pt.x = q.x; pt.y = q.y; syncRuns(); draw(); renderProps(); return;
+  }
+}
+
+function circuitSelect(o){
+  return `<select data-s="circuit">
+    <option value="">${T('— none —')}</option>
+    ${circuits().map(c=>`<option value="${c.id}" ${o.circuit===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}
+    <option value="__new">${T('+ New circuit…')}</option>
+  </select>`;
+}
+function bindCircuitSelect(box, o){
+  const selEl = box.querySelector('select[data-s=circuit]');
+  if(!selEl) return;
+  selEl.onchange = ()=>{
+    if(selEl.value === '__new'){
+      push();
+      const cs = circuits();
+      const c = {id:nid(), name:T('Circuit')+' '+String.fromCharCode(65+cs.length),
+                 colour:CIRCUIT_COLOURS[cs.length % CIRCUIT_COLOURS.length], breaker:16, hidden:false};
+      cs.push(c); o.circuit = c.id;
+    } else o.circuit = selEl.value || null;
+    drawAll();
+  };
+}
+
+// ---- properties for a selected service object ----
+function renderSvcProps(box){
+  const svc = ensureSvc();
+  if(!svcSel){
+    box.innerHTML = `<h3 style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px">Properties</h3>
+      <p class="empty">Pick a symbol on the left, then click on the plan. Runs route along walls automatically — click each turning point, Esc to finish.</p>`;
+    translateDOM(box); return;
+  }
+  if(svcSel.kind === 'circuit'){
+    const c = circuits().find(x=>x.id===svcSel.id);
+    if(!c){ svcSel=null; return renderSvcProps(box); }
+    const L = circuitLoad(c);
+    const pts = ensureSvc().points.filter(p=>p.circuit===c.id);
+    const over = c.breaker && L.amps > c.breaker*0.8;
+    box.innerHTML = `
+      <h3 style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px">
+        Properties <span class="tag" style="background:${c.colour}">${esc(c.name)}</span></h3>
+      <div style="font-family:ui-monospace,Menlo,monospace;font-size:18px;margin-bottom:4px">${L.w} W
+        <span style="color:var(--muted);font-size:12px">· ${L.amps.toFixed(1)} A ${T('at 230 V')}</span></div>
+      <div style="font-family:ui-monospace,Menlo,monospace;font-size:11px;margin-bottom:10px;${over?'color:var(--danger)':'color:var(--muted)'}">
+        ${T('Breaker')} ${c.breaker||16} A · ${Math.round(L.amps/((c.breaker||16))*100)}% ${T('used')}${over?' ⚠':''}</div>
+      <div style="color:var(--muted);font-size:12px;line-height:1.6;margin-bottom:10px">
+        ${L.points} ${T('points')} · ${L.len.toFixed(2)} m ${T('of cable')}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px">${
+        pts.map(p=>`<tr><td style="padding:2px 0">${esc(p.n || T(ptDef(p.t).n))}</td>
+          <td style="text-align:right;font-family:ui-monospace,Menlo,monospace;color:var(--muted)">${loadOf(p)} W</td></tr>`).join('')
+      }</table>`;
+    translateDOM(box);
+    return;
+  }
+  if(svcSel.kind === 'pt'){
+    const pt = svc.points.find(x=>x.id===svcSel.id);
+    if(!pt){ svcSel=null; return renderSvcProps(box); }
+    const d = ptDef(pt.t);
+    box.innerHTML = `
+      <h3 style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px">
+        Properties <span class="tag">${T(d.n)}</span></h3>
+      <div class="f" style="margin-bottom:8px"><label>Label</label>
+        <input data-s="n" value="${esc(pt.n)}" placeholder="${esc(T('e.g. above worktop'))}"></div>
+      <div class="row">
+        <div class="f"><label>Height cm</label><input data-s="h" type="number" value="${pt.h}"></div>
+        <div class="f"><label>Load W</label><input data-s="w" type="number" min="0" value="${pt.w ?? (DEFAULT_LOAD[pt.t]||0)}"></div>
+      </div>
+      <div class="f" style="margin-bottom:8px"><label>Circuit</label>${circuitSelect(pt)}</div>
+      <div class="row">
+        <div class="f"><label>X cm</label><input data-s="x" type="number" value="${Math.round(pt.x)}"></div>
+        <div class="f"><label>Y cm</label><input data-s="y" type="number" value="${Math.round(pt.y)}"></div>
+      </div>
+      <div class="stack"><div class="inline">
+        <button id="svcDup">Duplicate</button><button id="svcDel" class="danger">Delete</button>
+      </div></div>`;
+    bindCircuitSelect(box, pt);
+    box.querySelectorAll('input').forEach(inp=> inp.oninput = ()=>{
+      const k = inp.dataset.s;
+      if(k==='n') pt[k] = inp.value;
+      else { const v = parseFloat(inp.value); if(!isNaN(v)) pt[k] = v; }
+      syncRuns(); draw(); autosave();
+    });
+    box.querySelector('#svcDup').onclick = ()=>{
+      push();
+      const c = {...pt, id:nid(), x:pt.x+30, y:pt.y+30};
+      svc.points.push(c); svcSel={kind:'pt', id:c.id}; drawAll();
+    };
+    box.querySelector('#svcDel').onclick = ()=>{
+      push();
+      svc.points = svc.points.filter(x=>x.id!==pt.id);
+      svc.runs.forEach(r=>{ if(r.a===pt.id) r.a=null; if(r.b===pt.id) r.b=null; });
+      svcSel=null; drawAll();
+    };
+  } else {
+    const r = svc.runs.find(x=>x.id===svcSel.id);
+    if(!r){ svcSel=null; return renderSvcProps(box); }
+    const d = runDef(r.t);
+    box.innerHTML = `
+      <h3 style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 8px">
+        Properties <span class="tag">${T(d.n)}</span></h3>
+      <div style="font-family:ui-monospace,Menlo,monospace;font-size:18px;margin-bottom:10px">
+        ${(runLength(r)/100).toFixed(2)} m
+        <span style="color:var(--muted);font-size:12px">· ${r.pts.length} ${T('points')}</span></div>
+      <div style="color:var(--muted);font-size:12px;line-height:1.5;margin-bottom:8px">
+        ${T('Connected')}: ${
+          [r.a, r.b].map(id=>{ const q = id && svcPointById(id);
+            return q ? `<b style="color:var(--text)">${esc(q.n || T(ptDef(q.t).n))}</b>` : T('free end'); }).join(' → ')}
+        <br>${T('Drag the run to move it, drag a corner to reshape')}</div>
+      <div class="f" style="margin-bottom:8px"><label>Circuit</label>${circuitSelect(r)}</div>
+      <div class="stack">
+        <div class="inline">
+          <button id="svcDelPt">Remove last point</button>
+          <button id="svcFree">Detach ends</button>
+        </div>
+        <div class="inline"><button id="svcDel" class="danger">Delete</button></div>
+      </div>`;
+    bindCircuitSelect(box, r);
+    const free = box.querySelector('#svcFree');
+    if(free) free.onclick = ()=>{ push(); r.a=null; r.b=null; drawAll(); toast('Run detached from its points'); };
+    box.querySelector('#svcDelPt').onclick = ()=>{
+      if(r.pts.length<=2) return toast('A run needs at least 2 points');
+      push(); r.pts.pop(); drawAll();
+    };
+    box.querySelector('#svcDel').onclick = ()=>{
+      push(); svc.runs = svc.runs.filter(x=>x.id!==r.id); svcSel=null; drawAll();
+    };
+  }
+  translateDOM(box);
+}
+
+// ---- shopping list feed: counts of points, metres of runs ----
+function svcRows(){
+  const svc = ensureSvc(), rows = [];
+  const meta = key => {
+    if(!state.svcMeta[key]) state.svcMeta[key] = {price:'', store:'', url:'', status:'buy', prio:'need', note:''};
+    return state.svcMeta[key];
+  };
+  SVC_POINTS.forEach(d=>{
+    const n = svc.points.filter(p=>p.t===d.t).length;
+    if(!n) return;
+    const m = meta('pt:'+d.t);
+    rows.push(Object.assign(m, {id:'svc:pt:'+d.t, n:T(d.n), qty:n, svcLen:1, svcUnit:'per piece'}));
+  });
+  SVC_RUNS.forEach(d=>{
+    const len = svc.runs.filter(r=>r.t===d.t).reduce((s,r)=>s+runLength(r),0)/100;
+    if(!len) return;
+    const m = meta('run:'+d.t);
+    rows.push(Object.assign(m, {id:'svc:run:'+d.t, n:T(d.n), qty:1, svcLen:Math.round(len*100)/100, svcUnit:'per metre'}));
+  });
+  return rows;
+}
+const getSvcRow = id => svcRows().find(r=>r.id===id);
+
+function drawAll(){
+  draw(); renderProps(); renderLayers();
+  if(activeTab === 'svc') renderCircuits();
+  autosave();
+}
+
+function renderLayers(){
+  ensureLayers();
+  const box = document.getElementById('layerList');
+  box.innerHTML = '';
+  state.layers.forEach((L, idx)=>{
+    const row = document.createElement('div');
+    row.className = 'layer' + (L.id===activeLayer ? ' active' : '') + (L.visible ? '' : ' off');
+    row.title = 'Click to make this the active layer';
+    row.onclick = ()=>{ activeLayer = L.id; renderLayers(); };
+
+    const eye = document.createElement('button');
+    eye.className = 'ico' + (L.visible ? ' act' : ''); eye.textContent = L.visible ? '◉' : '○';
+    eye.title = L.visible ? 'Hide layer' : 'Show layer';
+    eye.onclick = ev=>{ ev.stopPropagation(); L.visible=!L.visible; if(!L.visible && sel && sel.kind==='item' && getItem(sel.id) && getItem(sel.id).layer===L.id){ sel=null; renderProps(); } drawAll(); };
+
+    const name = document.createElement('input');
+    name.className='lname'; name.value=L.name;
+    name.onclick = ev=> ev.stopPropagation();
+    name.oninput = ()=>{ L.name = name.value; autosave(); };
+
+    const cnt = document.createElement('span');
+    cnt.className='count'; cnt.textContent = itemsOfLayer(L.id).length;
+
+    const lock = document.createElement('button');
+    lock.className='ico' + (L.locked ? ' act' : ''); lock.textContent = L.locked ? '🔒' : '🔓';
+    lock.title = L.locked ? 'Unlock layer' : 'Lock layer';
+    lock.onclick = ev=>{ ev.stopPropagation(); L.locked=!L.locked; if(L.locked && sel && sel.kind==='item' && getItem(sel.id) && getItem(sel.id).layer===L.id){ sel=null; renderProps(); } drawAll(); };
+
+    const up = document.createElement('button');
+    up.className='ico'; up.textContent='↑'; up.title='Move layer up';
+    up.onclick = ev=>{ ev.stopPropagation();
+      if(idx >= state.layers.length-1) return;
+      push(); state.layers.splice(idx+1, 0, state.layers.splice(idx,1)[0]); drawAll();
+    };
+
+    const del = document.createElement('button');
+    del.className='ico'; del.textContent='✕'; del.title='Delete layer (its pieces move down)';
+    del.onclick = ev=>{ ev.stopPropagation();
+      if(state.layers.length<=1) return toast('Keep at least one layer');
+      push();
+      const fallback = state.layers[idx===0 ? 1 : idx-1].id;
+      itemsOfLayer(L.id).forEach(i=> i.layer = fallback);
+      state.layers.splice(idx,1);
+      activeLayer = fallback; drawAll(); toast(`Layer "${L.name}" removed`);
+    };
+
+    row.append(eye, name, cnt, lock, up, del);
+    box.appendChild(row);
+    translateDOM(row);
+  });
+}
+document.getElementById('addLayer').onclick = ()=>{
+  push();
+  ensureLayers();
+  const L = {id:nid(), name:T('Layer')+' '+(state.layers.length+1), visible:true, locked:false};
+  state.layers.push(L); activeLayer = L.id;
+  drawAll(); toast('New layer — new pieces land here');
+};
+
+// ---------- toolbar ----------
+const toast = (m)=>{ const t=document.getElementById('toast'); t.textContent=T(m); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); };
+document.getElementById('addRoom').onclick = addRoom;
+document.getElementById('addPoly').onclick = ()=> addPolyRoom(parseInt(document.getElementById('cornerCount').value,10));
+document.getElementById('addInner').onclick = addInnerRoom;
+document.getElementById('btnDel').onclick = removeSel;
+document.getElementById('btnDup').onclick = duplicate;
+document.getElementById('btnUndo').onclick = undo;
+document.getElementById('btnLockWalls').onclick = e=>{
+  const walls = state.items.filter(isWall);
+  if(!walls.length) return toast('No freestanding walls yet');
+  push();
+  const lock = walls.some(w=>!w.locked);
+  walls.forEach(w=> w.locked = lock);
+  state.rooms.forEach(r=> r.locked = lock);
+  e.target.classList.toggle('on', lock);
+  e.target.textContent = lock ? 'Unlock all walls' : 'Lock all walls';
+  drawAll(); toast(lock ? 'Rooms and walls locked' : 'Rooms and walls unlocked');
+};
+function setTool(t){
+  tool = (tool===t) ? 'select' : t;
+  if(tool!=='measure') temp = null;
+  document.getElementById('btnMeasure').classList.toggle('on', tool==='measure');
+  document.getElementById('btnDim').classList.toggle('on', tool==='dim');
+  cv.style.cursor = tool==='select' ? 'crosshair' : 'copy';
+  if(tool!=='select') toast(tool==='measure'
+    ? 'Drag to measure · endpoints snap to corners · Shift = straight'
+    : 'Drag to place a dimension · Esc to stop');
+  draw();
+}
+document.getElementById('btnMeasure').onclick = ()=> setTool('measure');
+document.getElementById('btnDim').onclick = ()=> setTool('dim');
+document.getElementById('btnFit').onclick = fit;
+document.getElementById('btnDims').onclick = e=>{
+  dimsOn = !dimsOn;
+  e.target.classList.toggle('on', dimsOn);
+  if(!dimsOn && sel && sel.kind==='dim'){ sel=null; renderProps(); }
+  draw();
+  toast(dimsOn ? 'Dimensions shown' : 'Dimensions hidden');
+};
+document.getElementById('btnGrid').onclick = e=>{ gridOn=!gridOn; e.target.classList.toggle('on',gridOn); draw(); };
+document.getElementById('btnSnap').onclick = e=>{
+  snapOn=!snapOn; e.target.classList.toggle('on',snapOn);
+  document.getElementById('snapSize').disabled = !snapOn;
+  draw(); toast(snapOn ? `Snapping to ${snapStep} cm` : 'Snapping off');
+};
+document.getElementById('snapSize').oninput = e=>{
+  const v = parseFloat(e.target.value);
+  if(!isNaN(v) && v>0){ snapStep = v; store.snapStep = v; persist(); draw(); }
+};
+document.getElementById('btnClear').onclick = ()=>{ push(); state={rooms:[],items:[],dims:[],layers:[],svc:{points:[],runs:[],circuits:[]},svcMeta:{}}; activeLayer=null; svcSel=null; ensureLayers(); sel=null; drawAll(); toast('New plan started'); };
+// ---------- modal helper ----------
+const modal = document.getElementById('modal');
+function showModal(title, build){
+  document.getElementById('mtitle').textContent = T(title);
+  const body = document.getElementById('mbody');
+  body.innerHTML = '';
+  build(body);
+  translateDOM(body);
+  modal.classList.add('open');
+}
+function closeModal(){ modal.classList.remove('open'); }
+document.getElementById('mclose').onclick = closeModal;
+modal.addEventListener('click', e=>{ if(e.target===modal) closeModal(); });
+
+// Downloads can be blocked when the app runs inside a sandboxed frame, so every
+// export offers a real link to click, a clipboard copy, and the raw text.
+function offerFile(title, filename, mime, text){
+  showModal(title, body=>{
+    const url = URL.createObjectURL(new Blob([text], {type:mime}));
+    const row = document.createElement('div'); row.className='inline'; row.style.gap='8px';
+    const a = document.createElement('a');
+    a.className='dl'; a.href=url; a.download=filename; a.textContent='⤓ '+T('Download')+' '+filename;
+    a.addEventListener('click', ()=> setTimeout(closeModal, 400));
+    const copy = document.createElement('button');
+    copy.textContent='Copy to clipboard';
+    copy.onclick = async ()=>{
+      try{ await navigator.clipboard.writeText(text); }
+      catch(err){ ta.select(); document.execCommand('copy'); }
+      copy.textContent='Copied ✓'; setTimeout(()=>copy.textContent='Copy to clipboard', 1500);
+    };
+    const openTab = document.createElement('button');
+    openTab.textContent='Open in new tab';
+    openTab.onclick = ()=> window.open(url, '_blank', 'noopener');
+    row.append(a, copy, openTab);
+    const hint = document.createElement('div');
+    hint.className='hintline';
+    hint.textContent = 'If the download button does nothing (some browsers block it in embedded pages), copy the text below into a file instead.';
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.readOnly = true;
+    ta.addEventListener('focus', ()=> ta.select());
+    body.append(row, hint, ta);
+    setTimeout(()=>URL.revokeObjectURL(url), 120000);
+  });
+}
+
+// ---------- plan file export / import ----------
+function planFileText(){
+  const name = (document.getElementById('layoutName').value.trim() || 'floor-plan');
+  return [name, JSON.stringify({format:'flatplanner', version:1, name,
+           saved:new Date().toISOString(), plan:state, custom}, null, 2)];
+}
+document.getElementById('btnExport').onclick = ()=>{
+  const [name, text] = planFileText();
+  offerFile('Export plan', name.replace(/[^\w\-]+/g,'-').toLowerCase()+'.json', 'application/json', text);
+};
+
+function applyPlanFile(data){
+  const plan = data.plan || data;                       // accept a bare plan object too
+  if(!plan || !Array.isArray(plan.rooms) || !Array.isArray(plan.items))
+    throw new Error('no rooms or items in this file');
+  push();
+  state = {
+    rooms: plan.rooms.map(r=>({...r, id:r.id||nid()})),
+    items: plan.items.map(i=>({...i, id:i.id||nid()})),
+    dims: (plan.dims||[]).map(d=>({...d, id:d.id||nid()})),
+    layers: Array.isArray(plan.layers) && plan.layers.length ? plan.layers : null
+  };
+  if(!state.layers) delete state.layers;
+  ensureLayers();
+  sel=null; selVert=-1;
+  if(data.name) document.getElementById('layoutName').value = data.name;
+  if(Array.isArray(data.custom) && data.custom.length){
+    data.custom.forEach(d=>{ if(!custom.some(c=>c.n===d.n && c.w===d.w && c.h===d.h)) custom.push(d); });
+    renderCustom(); persist();
+  }
+  drawAll(); fit();
+  toast(`Imported ${state.rooms.length} rooms, ${state.items.length} items`);
+}
+
+document.getElementById('btnImport').onclick = ()=>{
+  showModal('Import plan', body=>{
+    const row = document.createElement('div'); row.className='inline'; row.style.gap='8px';
+    const pick = document.createElement('button');
+    pick.textContent = 'Choose a .json file';
+    pick.onclick = ()=> document.getElementById('fileIn').click();
+    const load = document.createElement('button');
+    load.textContent = 'Load pasted text';
+    load.onclick = ()=>{
+      try{ applyPlanFile(JSON.parse(ta.value)); closeModal(); }
+      catch(err){ toast('Not a plan file — ' + err.message); }
+    };
+    row.append(pick, load);
+    const hint = document.createElement('div');
+    hint.className='hintline';
+    hint.textContent = 'Pick a file, or paste the contents of a plan file below and press Load.';
+    const ta = document.createElement('textarea');
+    ta.placeholder = '{ "format": "flatplanner", ... }';
+    body.append(row, hint, ta);
+  });
+};
+document.getElementById('fileIn').onchange = async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{ applyPlanFile(JSON.parse(await f.text())); closeModal(); }
+  catch(err){ toast('Not a plan file — ' + err.message); }
+  e.target.value = '';
+};
+
+
+
+
+// ================= clearance checking =================
+let issues = [], showIssues = false;
+
+// --- convex polygon overlap (separating axis) ---
+function polyOverlap(A, B){
+  for(const poly of [A, B]){
+    for(let i=0;i<poly.length;i++){
+      const a = poly[i], b = poly[(i+1)%poly.length];
+      const ax = -(b.y-a.y), ay = b.x-a.x;
+      let minA=Infinity, maxA=-Infinity, minB=Infinity, maxB=-Infinity;
+      A.forEach(p=>{ const d=p.x*ax+p.y*ay; minA=Math.min(minA,d); maxA=Math.max(maxA,d); });
+      B.forEach(p=>{ const d=p.x*ax+p.y*ay; minB=Math.min(minB,d); maxB=Math.max(maxB,d); });
+      if(maxA < minB + 0.01 || maxB < minA + 0.01) return false;
+    }
+  }
+  return true;
+}
+function itemPoly(it){
+  return [[-1,-1],[1,-1],[1,1],[-1,1]].map(([sx,sy])=>{
+    const q = rot(sx*it.w/2, sy*it.h/2, rad(it.rot));
+    return {x:it.x+q.x, y:it.y+q.y};
+  });
+}
+// shortest distance between two convex polygons (0 when they overlap)
+function polyGap(A, B){
+  if(polyOverlap(A,B)) return 0;
+  let best = Infinity;
+  const scan = (P, Q) => {
+    for(const p of P)
+      for(let i=0;i<Q.length;i++)
+        best = Math.min(best, distToSeg(p, Q[i], Q[(i+1)%Q.length]));
+  };
+  scan(A,B); scan(B,A);
+  return best;
+}
+// the quarter disc a door sweeps through
+function doorSwingPoly(d){
+  const hingeLocal = rot(-d.w/2, 0, rad(d.rot));
+  const hinge = {x:d.x+hingeLocal.x, y:d.y+hingeLocal.y};
+  const start = rad(d.rot);
+  const dir = d.flip ? 1 : -1;
+  const pts = [hinge];
+  for(let k=0;k<=6;k++){
+    const a = start + dir * (Math.PI/2) * (k/6);
+    pts.push({x:hinge.x + Math.cos(a)*d.w, y:hinge.y + Math.sin(a)*d.w});
+  }
+  return pts;
+}
+
+const BULKY = ['bed','sofa','table','wardrobe','desk','counter','island','fridge','stove','bath',
+               'shower','washer','shelf','chair','stairs','box','toilet','sink'];
+const isFloorPiece = it => !isWall(it) && !isOpening(it) && it.t !== 'rug' && it.t !== 'radiator';
+
+function runChecks(opts){
+  const out = [];
+  const add = (level, msg, pos, objs) => out.push({id:'i'+out.length, level, msg, pos, objs:objs||[]});
+  const items = state.items.filter(i=> isFloorPiece(i) && (layerOf(i)||{}).visible !== false);
+
+  // 1. doors that cannot open
+  if(opts.doors) state.items.filter(i=>i.op==='door').forEach(d=>{
+    const swing = doorSwingPoly(d);
+    items.forEach(it=>{
+      if(polyOverlap(swing, itemPoly(it)))
+        add('error', `${T('Door swing blocked by')} "${it.n}"`, {x:d.x, y:d.y}, [d.id, it.id]);
+    });
+  });
+
+  // 2. furniture on top of furniture, on the same layer
+  if(opts.overlap) for(let a=0;a<items.length;a++)
+    for(let b=a+1;b<items.length;b++){
+      if(items[a].layer !== items[b].layer) continue;
+      if(polyOverlap(itemPoly(items[a]), itemPoly(items[b])))
+        add('error', `"${items[a].n}" ${T('overlaps')} "${items[b].n}"`,
+            {x:(items[a].x+items[b].x)/2, y:(items[a].y+items[b].y)/2}, [items[a].id, items[b].id]);
+    }
+
+  // 3. furniture sticking through a wall or standing outside every room
+  if(opts.walls) items.forEach(it=>{
+    const poly = itemPoly(it);
+    const inside = state.rooms.some(r=> poly.every(p=> inPoly(p, roomPts(r))));
+    if(inside) return;
+    const touching = state.rooms.some(r=> poly.some(p=> inPoly(p, roomPts(r))));
+    add(touching ? 'warn' : 'warn',
+        touching ? `"${it.n}" ${T('crosses a wall')}` : `"${it.n}" ${T('is outside every room')}`,
+        {x:it.x, y:it.y}, [it.id]);
+  });
+
+  // 4. gaps too narrow to walk through
+  if(opts.walkway){
+    const min = opts.walkwayMin;
+    for(let a=0;a<items.length;a++)
+      for(let b=a+1;b<items.length;b++){
+        if(items[a].layer !== items[b].layer) continue;
+        const g = polyGap(itemPoly(items[a]), itemPoly(items[b]));
+        if(g > 0.5 && g < min)
+          add('warn', `${T('Only')} ${Math.round(g)} cm ${T('between')} "${items[a].n}" ${T('and')} "${items[b].n}"`,
+              {x:(items[a].x+items[b].x)/2, y:(items[a].y+items[b].y)/2}, [items[a].id, items[b].id]);
+      }
+  }
+
+  // 5. sockets and switches hidden behind furniture
+  if(opts.sockets) ensureSvc().points.filter(pt=> ptDef(pt.t).sys==='elec').forEach(pt=>{
+    items.forEach(it=>{
+      if(it.t==='shelf' || it.t==='chair') return;
+      if(inPoly({x:pt.x, y:pt.y}, itemPoly(it)))
+        add('warn', `${T(ptDef(pt.t).n)} ${T('is behind')} "${it.n}"`, {x:pt.x, y:pt.y}, [it.id]);
+    });
+  });
+
+  // 6. rooms with no way in
+  if(opts.doors) state.rooms.forEach(r=>{
+    const outline = roomPts(r);
+    const has = state.items.some(o=> (o.op==='door'||o.op==='opening') &&
+      outline.some((p,i)=> distToSeg({x:o.x,y:o.y}, p, outline[(i+1)%outline.length]) < wallOf(r)+8));
+    if(!has) add('warn', `"${r.name}" ${T('has no door or opening')}`, roomCentre(r), []);
+  });
+
+  return out;
+}
+
+function drawIssues(){
+  if(!showIssues || !issues.length) return;
+  ctx.save();
+  issues.forEach((iss, n)=>{
+    iss.objs.forEach(id=>{
+      const it = getItem(id); if(!it) return;
+      const poly = itemPoly(it).map(S);
+      ctx.strokeStyle = iss.level==='error' ? '#e05c4b' : '#e0a33d';
+      ctx.lineWidth = 2; ctx.setLineDash([6,4]);
+      ctx.beginPath(); ctx.moveTo(poly[0].x, poly[0].y);
+      poly.slice(1).forEach(q=> ctx.lineTo(q.x, q.y));
+      ctx.closePath(); ctx.stroke(); ctx.setLineDash([]);
+    });
+    const c = S(iss.pos);
+    ctx.fillStyle = iss.level==='error' ? '#e05c4b' : '#e0a33d';
+    ctx.beginPath(); ctx.arc(c.x, c.y, 10, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font = '700 11px ui-sans-serif, system-ui';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(n+1), c.x, c.y+0.5);
+  });
+  ctx.restore();
+}
+
+document.getElementById('btnCheck').onclick = ()=>{
+  showModal('Check plan', body=>{
+    const opts = {doors:true, overlap:true, walls:true, walkway:true, sockets:true, walkwayMin:75};
+    const list = document.createElement('div'); list.className='stack';
+    [['doors','Door swings and room access'],['overlap','Furniture overlapping'],
+     ['walls','Furniture crossing walls'],['walkway','Narrow walkways'],
+     ['sockets','Sockets behind furniture']].forEach(([k,label])=>{
+      const l = document.createElement('label'); l.className='chk';
+      const c = document.createElement('input'); c.type='checkbox'; c.checked=true;
+      c.onchange = ()=>{ opts[k]=c.checked; run(); };
+      l.append(c, document.createTextNode(' '+T(label)));
+      list.appendChild(l);
+    });
+    const wRow = document.createElement('label'); wRow.className='chk';
+    const wIn = document.createElement('input');
+    wIn.type='number'; wIn.value=75; wIn.min='30'; wIn.style.width='64px';
+    wIn.oninput = ()=>{ opts.walkwayMin = parseFloat(wIn.value)||75; run(); };
+    wRow.append(document.createTextNode(T('Minimum walkway')+' '), wIn, document.createTextNode(' cm'));
+    list.appendChild(wRow);
+
+    const result = document.createElement('div');
+    body.append(list, result);
+
+    function run(){
+      issues = runChecks(opts);
+      showIssues = true;
+      draw();
+      const errs = issues.filter(i=>i.level==='error').length;
+      if(!issues.length){
+        result.innerHTML = `<div style="padding:14px 0;color:var(--muted)">✓ ${T('No problems found.')}</div>`;
+        return;
+      }
+      result.innerHTML =
+        `<div class="hintline">${issues.length} ${T('findings')} · ${errs} ${T('to fix')}</div>` +
+        `<div class="stack">${issues.map((iss,n)=>`
+          <div class="layer" data-i="${iss.id}" style="cursor:pointer">
+            <span class="ico" style="color:${iss.level==='error'?'var(--danger)':'var(--accent)'}">${n+1}</span>
+            <span style="flex:1;font-size:12px">${iss.msg}</span>
+            <span class="count">${T('Show')}</span>
+          </div>`).join('')}</div>`;
+      result.querySelectorAll('[data-i]').forEach(row=>{
+        row.onclick = ()=>{
+          const iss = issues.find(x=>x.id===row.dataset.i);
+          view.x = iss.pos.x - (cv.clientWidth/view.z)/2;
+          view.y = iss.pos.y - (cv.clientHeight/view.z)/2;
+          if(iss.objs.length && getItem(iss.objs[0])) sel = {kind:'item', id:iss.objs[0]};
+          closeModal(); drawAll();
+        };
+      });
+    }
+    const clear = document.createElement('button');
+    clear.textContent = T('Clear highlights');
+    clear.onclick = ()=>{ issues=[]; showIssues=false; draw(); closeModal(); };
+    body.append(clear);
+    run();
+  });
+};
+
+// ================= print / PDF =================
+// Renders the plan off-screen at high resolution, then builds an A4 document:
+// title block, plan, room schedule, services, shopping list.
+function capturePlan(scale){
+  scale = scale || 3;
+  const w = cv.clientWidth, h = cv.clientHeight, d = window.devicePixelRatio || 1;
+  const savedView = {...view}, savedTheme = theme, savedTab = activeTab, savedSel = sel, savedTool = tool;
+  const savedHover = hoverPt, savedSvcSel = svcSel;
+  sel = null; svcSel = null; hoverPt = null; tool = 'select';
+  const savedShow = showIssues; showIssues = false;
+  theme = 'light';
+  cv.width = w*scale; cv.height = h*scale;
+  ctx.setTransform(scale,0,0,scale,0,0);
+  fit(); draw();
+  const data = cv.toDataURL('image/png');
+  theme = savedTheme; view = savedView; sel = savedSel; tool = savedTool; showIssues = savedShow;
+  hoverPt = savedHover; svcSel = savedSvcSel; activeTab = savedTab;
+  cv.width = w*d; cv.height = h*d;
+  ctx.setTransform(d,0,0,d,0,0);
+  draw();
+  return data;
+}
+
+function printRoomSchedule(){
+  if(!state.rooms.length) return '';
+  const rows = state.rooms.map(r=>{
+    const doors = state.items.filter(i=>i.op==='door' && inPoly({x:i.x,y:i.y}, roomPts(r))).length;
+    const wins  = state.items.filter(i=>i.op==='window' && inPoly({x:i.x,y:i.y}, roomPts(r))).length;
+    const wallArea = (roomPerimeter(r)/100) * ((r.ceiling||260)/100);
+    return `<tr><td>${esc(r.name)}</td>
+      <td class="num">${(netArea(r)/10000).toFixed(2)}</td>
+      <td class="num">${(roomPerimeter(r)/100).toFixed(2)}</td>
+      <td class="num">${wallArea.toFixed(2)}</td>
+      <td class="num">${wallOf(r)}</td>
+      <td class="num">${r.ceiling||260}</td>
+      <td class="num">${doors}</td><td class="num">${wins}</td></tr>`;
+  }).join('');
+  return `<h2>${T('Room schedule')}</h2>
+    <table><thead><tr>
+      <th>${T('Room')}</th><th class="num">${T('Floor m²')}</th><th class="num">${T('Perimeter m')}</th>
+      <th class="num">${T('Wall m²')}</th><th class="num">${T('Wall cm')}</th><th class="num">${T('Ceiling cm')}</th>
+      <th class="num">${T('Doors')}</th><th class="num">${T('Windows')}</th>
+    </tr></thead><tbody>${rows}
+    <tr class="sum"><td>${T('Total')}</td>
+      <td class="num">${(totalFloorArea()/10000).toFixed(2)}</td><td colspan="6"></td></tr>
+    </tbody></table>`;
+}
+
+function printCircuits(){
+  const cs = circuits();
+  if(!cs.length) return '';
+  const rows = cs.map(c=>{
+    const L = circuitLoad(c);
+    const over = c.breaker && L.amps > c.breaker*0.8;
+    const names = ensureSvc().points.filter(p=>p.circuit===c.id)
+      .map(p=> p.n || T(ptDef(p.t).n));
+    const counts = {};
+    names.forEach(n=> counts[n] = (counts[n]||0)+1);
+    const list = Object.entries(counts).map(([n,k])=> k>1 ? `${k}× ${n}` : n).join(', ');
+    return `<tr>
+      <td><b>${esc(c.name)}</b></td>
+      <td class="num">${c.breaker||16} A</td>
+      <td class="num">${L.w} W</td>
+      <td class="num"${over?' style="font-weight:700"':''}>${L.amps.toFixed(1)} A${over?' ⚠':''}</td>
+      <td class="num">${L.len.toFixed(2)} m</td>
+      <td style="font-size:10px;color:#555">${esc(list)}</td></tr>`;
+  }).join('');
+  return `<h2>${T('Circuit schedule')}</h2>
+    <table><thead><tr>
+      <th>${T('Circuit')}</th><th class="num">${T('Breaker')}</th><th class="num">${T('Load')}</th>
+      <th class="num">${T('Current')}</th><th class="num">${T('Cable')}</th><th>${T('Points')}</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+function printServices(){
+  const svc = ensureSvc();
+  if(!svc.points.length && !svc.runs.length) return '';
+  const pt = SVC_POINTS.map(d=>{
+    const list = svc.points.filter(x=>x.t===d.t);
+    if(!list.length) return '';
+    const hs = [...new Set(list.map(x=>x.h))].sort((a,b)=>a-b).join(', ');
+    const cir = [...new Set(list.map(x=>{ const c = circuitOf(x); return c ? c.name : ''; }).filter(Boolean))].join(', ');
+    return `<tr><td>${T(d.n)}</td><td class="num">${list.length}</td>
+            <td class="num">${hs}</td><td>${esc(cir)}</td></tr>`;
+  }).join('');
+  const rn = SVC_RUNS.map(d=>{
+    const len = svc.runs.filter(r=>r.t===d.t).reduce((s,r)=>s+runLength(r),0)/100;
+    if(!len) return '';
+    return `<tr><td>${T(d.n)}</td><td class="num">—</td><td class="num">${len.toFixed(2)} m</td><td></td></tr>`;
+  }).join('');
+  return `<h2>${T('Services — electricity & plumbing')}</h2>
+    <table><thead><tr><th>${T('Item')}</th><th class="num">${T('Qty')}</th>
+      <th class="num">${T('Height cm')} / ${T('Length')}</th><th>${T('Circuit')}</th></tr></thead>
+      <tbody>${pt}${rn}</tbody></table>`;
+}
+
+function printShopping(){
+  const rooms = sheetRooms(), items = sheetItems(), svcR = shownSvc();
+  if(!rooms.length && !items.length && !svcR.length) return '';
+  const line = (name, qty, measure, price, total, extra) =>
+    `<tr><td>${esc(name)}${extra?` <span style="color:#888">${esc(extra)}</span>`:''}</td>
+      <td class="num">${qty}</td><td class="num">${measure}</td>
+      <td class="num">${price===''||price==null?'':money(price)}</td>
+      <td class="num">${total?money(total)+' '+currency:''}</td></tr>`;
+  let body = '';
+  rooms.forEach(r=>{
+    const js = shownJobs(r); if(!js.length) return;
+    body += `<tr class="grp"><td colspan="5">${esc(r.name)}</td></tr>`;
+    js.forEach(j=> body += line(j.n, j.qty||1, measureLabel(j), j.price, lineTotal(j)));
+  });
+  state.layers.forEach(L=>{
+    const its = items.filter(i=>i.layer===L.id); if(!its.length) return;
+    body += `<tr class="grp"><td colspan="5">${esc(L.name)}</td></tr>`;
+    const gs = itemGroups();
+    gs.groups.filter(g=>g.layer===L.id).forEach(g=>
+      body += line(g.n, g.qty, measureLabel(g), g.price, rowTotal(g),
+                   `${Math.round(g.w)}×${Math.round(g.h)} cm`));
+    gs.singles.filter(i=>i.layer===L.id).forEach(i=>{
+      if(prioPass(i)) body += line(i.n + (i.variant?` (${i.variant})`:''), i.qty||1,
+        measureLabel(i), i.price, rowTotal(i), `${Math.round(i.w)}×${Math.round(i.h)} cm`);
+      shownParts(i).forEach(pt=> body += line('  – ' + pt.n, pt.qty||1, measureLabel(pt), pt.price, lineTotal(pt)));
+    });
+  });
+  if(svcR.length){
+    body += `<tr class="grp"><td colspan="5">${T('Services — electricity & plumbing')}</td></tr>`;
+    svcR.forEach(o=> body += line(o.n, o.qty||1, measureLabel(o), o.price, lineTotal(o)));
+  }
+  const rows = allRows();
+  const total = rows.reduce((s,o)=>s+lineTotal(o),0);
+  const need  = rows.filter(o=>prioOf(o)==='need').reduce((s,o)=>s+lineTotal(o),0);
+  return `<h2>${T('Shopping list')}</h2>
+    <table><thead><tr><th>${T('Item')}</th><th class="num">${T('Qty')}</th>
+      <th class="num">${T('Amount')}</th><th class="num">${T('Unit price')}</th>
+      <th class="num">${T('Total price')}</th></tr></thead>
+      <tbody>${body}
+        <tr class="sum"><td colspan="4">${T('Need')}</td><td class="num">${money(need)} ${currency}</td></tr>
+        <tr class="sum"><td colspan="4">${T('Total')}</td><td class="num">${money(total)} ${currency}</td></tr>
+      </tbody></table>`;
+}
+
+function buildPrint(opts){
+  const name = document.getElementById('layoutName').value.trim() || T('Floor plan');
+  const date = new Date().toLocaleDateString();
+  const legend = `<div class="legend">
+      ${SVC_POINTS.filter(d=>ensureSvc().points.some(p=>p.t===d.t))
+        .map(d=>`<span><i class="dot" style="background:${d.c}"></i>${T(d.n)}</span>`).join('')}
+      ${SVC_RUNS.filter(d=>ensureSvc().runs.some(r=>r.t===d.t))
+        .map(d=>`<span><i class="dot" style="background:${d.c}"></i>${T(d.n)}</span>`).join('')}
+    </div>`;
+  let html = `<div class="title">
+      <div><h1>${esc(name)}</h1>
+        <div style="font-size:11px;color:#555">${state.rooms.length} ${T('rooms')} ·
+          ${(totalFloorArea()/10000).toFixed(2)} m² ${T('floor')}</div></div>
+      <div class="meta">${T('Printed')}: ${date}<br>${T('Dimensions in cm')}</div>
+    </div>`;
+  if(opts.plan){
+    html += `<img class="plan" src="${capturePlan(3)}">`;
+    if(ensureSvc().points.length || ensureSvc().runs.length) html += legend;
+  }
+  if(opts.rooms)    html += printRoomSchedule();
+  if(opts.services) html += printServices() + printCircuits();
+  if(opts.shopping) html += `<div class="${opts.plan||opts.rooms?'sheet-break':''}"></div>` + printShopping();
+  html += `<div class="foot">${T('Made with Flat Planner')} · ${esc(name)} · ${date}</div>`;
+  document.getElementById('printArea').innerHTML = html;
+}
+
+document.getElementById('btnPrint').onclick = ()=>{
+  showModal('Print / PDF', body=>{
+    const opts = [['plan','Plan drawing'],['rooms','Room schedule'],
+                  ['services','Services schedule'],['shopping','Shopping list']];
+    const boxes = {};
+    const list = document.createElement('div'); list.className='stack';
+    opts.forEach(([k,label])=>{
+      const l = document.createElement('label'); l.className='chk';
+      const c = document.createElement('input'); c.type='checkbox'; c.checked = true;
+      boxes[k] = c; l.append(c, document.createTextNode(' ' + T(label)));
+      list.appendChild(l);
+    });
+    const hint = document.createElement('div');
+    hint.className = 'hintline';
+    hint.textContent = T('Your browser\'s print dialog can save this as a PDF — choose "Save as PDF" as the destination.');
+    const go = document.createElement('button');
+    go.className = ''; go.textContent = T('Open print dialog');
+    go.onclick = ()=>{
+      buildPrint({plan:boxes.plan.checked, rooms:boxes.rooms.checked,
+                  services:boxes.services.checked, shopping:boxes.shopping.checked});
+      closeModal();
+      setTimeout(()=> window.print(), 60);
+    };
+    body.append(list, hint, go);
+  });
+};
+
+// ---------- storage ----------
+// Uses the host page's storage API when embedded, and the browser's own
+// localStorage when the file is opened directly — so it works standalone.
+const DB = (typeof window.storage === 'object' && window.storage && window.storage.get)
+  ? window.storage
+  : {
+      async get(k){
+        const v = localStorage.getItem(k);
+        if(v === null) throw new Error('not found');
+        return {key:k, value:v};
+      },
+      async set(k, v){ localStorage.setItem(k, v); return {key:k, value:v}; },
+      async delete(k){ localStorage.removeItem(k); return {key:k, deleted:true}; },
+      async list(prefix=''){ return {keys:Object.keys(localStorage).filter(k=>k.startsWith(prefix))}; }
+    };
+const KEY='flatplanner:v1';
+let store = {layouts:{}, versions:[], activeVersion:null, autosave:null, custom:[]};
+let saveTimer=null;
+async function persist(){
+  store.custom = custom;
+  try{ await DB.set(KEY, JSON.stringify(store)); }catch(e){}
+}
+function autosave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ store.autosave = state; persist(); }, 600);
+}
+// ---------- named versions of the whole plan ----------
+function withState(st, fn){
+  const cur = state;
+  state = st;
+  try { return fn(); } finally { state = cur; }
+}
+function totalCostAll(){
+  return [...state.rooms.flatMap(roomJobs), ...state.items, ...allParts(), ...svcRows()]
+    .reduce((s,o)=>s+lineTotal(o), 0);
+}
+function planStats(st){
+  return withState(st, ()=>{
+    ensureLayers(); ensureSvc();
+    return {
+      rooms: state.rooms.length,
+      items: state.items.length,
+      area:  totalFloorArea()/10000,
+      cost:  totalCostAll()
+    };
+  });
+}
+function ensureVersions(){
+  if(!Array.isArray(store.versions)) store.versions = [];
+  if(store.layouts && Object.keys(store.layouts).length){        // migrate old saved layouts
+    Object.entries(store.layouts).forEach(([n, plan])=>{
+      if(store.versions.some(v=>v.name===n)) return;
+      store.versions.push({id:nid(), name:n, note:'', saved:new Date().toISOString(),
+                           plan, stats:planStats(JSON.parse(JSON.stringify(plan)))});
+    });
+    store.layouts = {};
+    persist();
+  }
+  return store.versions;
+}
+function saveVersion(name, note){
+  ensureVersions();
+  const plan = JSON.parse(JSON.stringify(state));
+  const v = {id:nid(), name:name || (T('Version')+' '+(store.versions.length+1)),
+             note:note||'', saved:new Date().toISOString(), plan, stats:planStats(plan)};
+  store.versions.push(v);
+  store.activeVersion = v.id;
+  persist(); updateVerLabel();
+  return v;
+}
+function updateVersion(v){
+  v.plan = JSON.parse(JSON.stringify(state));
+  v.saved = new Date().toISOString();
+  v.stats = planStats(v.plan);
+  persist(); updateVerLabel();
+}
+function loadVersion(v){
+  push();
+  state = JSON.parse(JSON.stringify(v.plan));
+  state.dims = state.dims||[];
+  ensureLayers(); ensureSvc();
+  sel = null; selVert = -1; svcSel = null;
+  store.activeVersion = v.id; persist();
+  document.getElementById('layoutName').value = v.name;
+  drawAll(); fit(); updateVerLabel();
+  toast(T('Loaded')+' "'+v.name+'"');
+}
+function updateVerLabel(){
+  const v = (store.versions||[]).find(x=>x.id===store.activeVersion);
+  document.getElementById('verNow').textContent = v ? '▸ ' + v.name : '';
+}
+
+document.getElementById('btnVersions').onclick = ()=>{
+  ensureVersions();
+  showModal('Versions of this plan', body=>{
+    const now = planStats(state);
+
+    // save row
+    const bar = document.createElement('div'); bar.className='inline'; bar.style.gap='8px';
+    const nameIn = document.createElement('input');
+    nameIn.placeholder = T('Name this version');
+    nameIn.value = document.getElementById('layoutName').value.trim();
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = T('Save current as new version');
+    saveBtn.onclick = ()=>{
+      const v = saveVersion(nameIn.value.trim(), '');
+      if(!document.getElementById('layoutName').value.trim())
+        document.getElementById('layoutName').value = v.name;
+      redraw(); toast(T('Version saved'));
+    };
+    bar.append(nameIn, saveBtn);
+
+    const summary = document.createElement('div');
+    summary.className = 'hintline';
+    summary.innerHTML = `${T('Current working plan')}: <b>${now.rooms} ${T('rooms')}</b> ·
+      <b>${now.area.toFixed(2)} m²</b> · <b>${money(now.cost)} ${esc(currency)}</b>`;
+
+    const wrap = document.createElement('div');
+    body.append(bar, summary, wrap);
+
+    function redraw(){
+      const vs = ensureVersions();
+      if(!vs.length){
+        wrap.innerHTML = `<p class="empty" style="padding:12px 0">${T('No versions yet — save the current plan as your first one.')}</p>`;
+        return;
+      }
+      const cheapest = Math.min(...vs.map(v=>v.stats.cost||0));
+      wrap.innerHTML = `<table id="verTable" style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr>
+          <th style="text-align:left;padding:6px 4px;border-bottom:1px solid var(--line);color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase">${T('Version')}</th>
+          <th style="text-align:right;padding:6px 4px;border-bottom:1px solid var(--line);color:var(--muted);font-size:10px">${T('Rooms')}</th>
+          <th style="text-align:right;padding:6px 4px;border-bottom:1px solid var(--line);color:var(--muted);font-size:10px">m²</th>
+          <th style="text-align:right;padding:6px 4px;border-bottom:1px solid var(--line);color:var(--muted);font-size:10px">${T('Cost')}</th>
+          <th style="border-bottom:1px solid var(--line)"></th>
+        </tr></thead><tbody>${
+        vs.map(v=>{
+          const act = v.id===store.activeVersion;
+          const cheap = (v.stats.cost||0) === cheapest && vs.length>1;
+          return `<tr data-id="${v.id}" style="${act?'background:var(--panel-2)':''}">
+            <td style="padding:5px 4px;border-bottom:1px solid var(--line)">
+              <input data-f="name" value="${esc(v.name)}" style="padding:4px 6px">
+              <div style="color:var(--muted);font-size:10px;font-family:ui-monospace,Menlo,monospace">
+                ${new Date(v.saved).toLocaleString()}${act?' · '+T('current'):''}</div></td>
+            <td class="num" style="text-align:right;padding:5px 4px;border-bottom:1px solid var(--line);font-family:ui-monospace,Menlo,monospace">${v.stats.rooms}</td>
+            <td style="text-align:right;padding:5px 4px;border-bottom:1px solid var(--line);font-family:ui-monospace,Menlo,monospace">${(v.stats.area||0).toFixed(2)}</td>
+            <td style="text-align:right;padding:5px 4px;border-bottom:1px solid var(--line);font-family:ui-monospace,Menlo,monospace;${cheap?'color:var(--accent);font-weight:700':''}">
+              ${money(v.stats.cost||0)}${cheap?' ★':''}</td>
+            <td style="text-align:right;padding:5px 4px;border-bottom:1px solid var(--line);white-space:nowrap">
+              <button class="mini" data-act="load">${T('Load')}</button>
+              <button class="mini" data-act="update" title="${T('Overwrite with the current plan')}">${T('Update')}</button>
+              <button class="mini" data-act="copy">${T('Copy')}</button>
+              <button class="mini" data-act="del">✕</button>
+            </td></tr>`;
+        }).join('')}</tbody></table>`;
+      translateDOM(wrap);
+    }
+
+    wrap.addEventListener('click', e=>{
+      const b = e.target.closest('button[data-act]'); if(!b) return;
+      const id = b.closest('tr').dataset.id;
+      const vs = ensureVersions();
+      const v = vs.find(x=>x.id===id); if(!v) return;
+      const act = b.dataset.act;
+      if(act==='load'){ loadVersion(v); closeModal(); }
+      else if(act==='update'){ updateVersion(v); redraw(); toast(T('Version updated')); }
+      else if(act==='copy'){
+        const c = {...v, id:nid(), name:v.name+' ('+T('copy')+')', saved:new Date().toISOString(),
+                   plan:JSON.parse(JSON.stringify(v.plan))};
+        store.versions.push(c); persist(); redraw();
+      }
+      else if(act==='del'){
+        store.versions = vs.filter(x=>x.id!==id);
+        if(store.activeVersion===id) store.activeVersion = null;
+        persist(); redraw(); updateVerLabel();
+      }
+    });
+    wrap.addEventListener('input', e=>{
+      if(e.target.dataset.f !== 'name') return;
+      const v = ensureVersions().find(x=>x.id===e.target.closest('tr').dataset.id);
+      if(v){ v.name = e.target.value; persist(); updateVerLabel(); }
+    });
+    redraw();
+  });
+};
+
+// ---------- demo plan ----------
+function demo(){
+  const R=(name,x,y,w,h)=>({id:nid(),name,x,y,w,h});
+  state.rooms=[R('Living',0,0,520,420), R('Bedroom',520,0,380,420), R('Kitchen',0,420,320,300), R('Bath',320,420,240,300), R('Hall',560,420,340,300)];
+  const I=(t,n,w,h,c,x,y,rt,op)=>({id:nid(),t,n,w,h,c,x,y,rot:rt||0,op:op||null,flip:false});
+  state.items=[
+    I('sofa','Sofa 3-seat',220,90,'#6f8f76',180,90),
+    I('table','Coffee table',110,60,'#a07c52',180,220),
+    I('shelf','TV unit',180,40,'#7c6f8f',180,370),
+    I('bed','Double bed',160,200,'#5f7f96',710,130),
+    I('wardrobe','Wardrobe',200,60,'#7c6f8f',710,380),
+    I('counter','Counter run',240,60,'#8a8f7a',160,455,0),
+    I('bath','Bathtub',170,75,'#5f96a0',440,470,0),
+    I('door','Door',80,WALL,'#c9713b',260,420),
+    I('door','Door',80,WALL,'#c9713b',520,200,90),
+    I('window','Window',160,WALL,'#4aa3c7',260,0),
+    I('window','Window',140,WALL,'#4aa3c7',710,0),
+  ];
+}
+
+(async function init(){
+  try{
+    const r = await DB.get(KEY);
+    if(r && r.value) store = JSON.parse(r.value);
+  }catch(e){}
+  custom = store.custom || [];
+  if(store.currency){ currency = store.currency; document.getElementById('currency').value = currency; }
+  if(store.snapStep > 0){ snapStep = store.snapStep; document.getElementById('snapSize').value = snapStep; }
+  renderCustom();
+  ensureVersions(); updateVerLabel();
+  if(store.autosave && (store.autosave.rooms||[]).length) state = store.autosave; else demo();
+  state.dims = state.dims || [];            // plans saved before dimensions existed
+  ensureLayers(); renderLayers();
+  setTab('plan');
+  resize(); fit(); renderProps();
+  if(store.theme === 'light') setTheme('light');
+  if(store.lang === 'cs') setLang('cs');
+})();
+</script>
+</body>
+</html>
