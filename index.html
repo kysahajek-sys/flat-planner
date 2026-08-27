@@ -362,6 +362,7 @@
   <div class="sep"></div>
   <input id="layoutName" placeholder="Plan name" style="width:130px">
   <button id="btnVersions">Versions…</button>
+  <button id="btnSync">Sync…</button>
   <span id="verNow" class="tabhint"></span>
   <div class="sep"></div>
   <button id="btnExport">Export file</button>
@@ -3277,6 +3278,183 @@ document.getElementById('fileIn').onchange = async e=>{
 
 
 
+
+// ================= cloud sync via GitHub Gist =================
+// One private gist holds a single JSON file with everything: versions, the working
+// plan, custom furniture and preferences. The token is kept in this browser only and
+// is never part of the synced payload.
+const SYNC_KEY = 'flatplanner:sync:v1';
+const GIST_FILE = 'flat-planner.json';
+let sync = {token:'', gist:'', auto:false, last:0};
+let syncTimer = null;
+
+async function loadSyncSettings(){
+  try{
+    const r = await DB.get(SYNC_KEY);
+    if(r && r.value) sync = Object.assign(sync, JSON.parse(r.value));
+  }catch(e){}
+}
+const saveSyncSettings = () => DB.set(SYNC_KEY, JSON.stringify(sync)).catch(()=>{});
+
+function syncPayload(){
+  return {
+    app:'flat-planner', v:1, updated: Date.now(),
+    store: {
+      versions: store.versions || [],
+      activeVersion: store.activeVersion || null,
+      autosave: state,
+      custom, currency,
+      lang, theme, snapStep
+    }
+  };
+}
+function applyPayload(p){
+  const st = p.store || {};
+  store.versions = st.versions || [];
+  store.activeVersion = st.activeVersion || null;
+  if(Array.isArray(st.custom)){ custom = st.custom; renderCustom(); }
+  if(st.currency){ currency = st.currency; document.getElementById('currency').value = currency; }
+  if(st.snapStep > 0){ snapStep = st.snapStep; document.getElementById('snapSize').value = snapStep; }
+  if(st.autosave && Array.isArray(st.autosave.rooms)){
+    state = st.autosave;
+    ensureLayers(); ensureSvc();
+    sel = null; svcSel = null; selVert = -1;
+  }
+  store.autosave = state;
+  persist(); ensureVersions(); updateVerLabel(); drawAll(); fit();
+  if(st.theme && st.theme !== theme) setTheme(st.theme);
+  if(st.lang && st.lang !== lang) setLang(st.lang);
+}
+
+async function gh(path, opts){
+  const res = await fetch('https://api.github.com' + path, Object.assign({
+    headers: {
+      'Authorization': 'Bearer ' + sync.token,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    }
+  }, opts||{}));
+  if(res.status === 401) throw new Error(T('Token rejected — check it has the gist scope'));
+  if(res.status === 404) throw new Error(T('Gist not found — check the ID'));
+  if(!res.ok) throw new Error('GitHub ' + res.status);
+  return res.json();
+}
+async function cloudRead(){
+  const g = await gh('/gists/' + sync.gist);
+  const f = g.files && g.files[GIST_FILE];
+  if(!f) throw new Error(T('That gist has no plan file'));
+  const text = f.truncated ? await (await fetch(f.raw_url)).text() : f.content;
+  return JSON.parse(text);
+}
+async function cloudWrite(){
+  const body = JSON.stringify({
+    description: 'Flat Planner data',
+    public: false,
+    files: { [GIST_FILE]: { content: JSON.stringify(syncPayload(), null, 1) } }
+  });
+  const g = sync.gist
+    ? await gh('/gists/' + sync.gist, {method:'PATCH', body})
+    : await gh('/gists', {method:'POST', body});
+  sync.gist = g.id;
+  sync.last = Date.now();
+  await saveSyncSettings();
+  return g;
+}
+function scheduleCloudPush(){
+  if(!sync.auto || !sync.token) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(()=> cloudWrite().catch(()=>{}), 15000);
+}
+
+document.getElementById('btnSync').onclick = ()=>{
+  showModal('Cloud sync', body=>{
+    const wrap = document.createElement('div'); wrap.className = 'stack';
+
+    const mk = (label, value, ph, type) => {
+      const f = document.createElement('div'); f.className='f';
+      const l = document.createElement('label'); l.textContent = T(label);
+      const i = document.createElement('input');
+      i.value = value || ''; i.placeholder = ph || ''; if(type) i.type = type;
+      f.append(l, i); wrap.appendChild(f); return i;
+    };
+    const tok  = mk('GitHub token', sync.token, 'github_pat_…', 'password');
+    const gist = mk('Gist ID (blank = create a new one)', sync.gist, '');
+
+    const autoL = document.createElement('label'); autoL.className='chk';
+    const autoC = document.createElement('input'); autoC.type='checkbox'; autoC.checked = !!sync.auto;
+    autoL.append(autoC, document.createTextNode(' ' + T('upload automatically after changes')));
+    wrap.appendChild(autoL);
+
+    const status = document.createElement('div');
+    status.className = 'hintline';
+    const setStatus = (m, bad) => {
+      status.innerHTML = m;
+      status.style.color = bad ? 'var(--danger)' : 'var(--muted)';
+    };
+    setStatus(sync.last
+      ? `${T('Last upload')}: ${new Date(sync.last).toLocaleString()}`
+      : T('Not synced yet'));
+
+    const remember = async ()=>{
+      sync.token = tok.value.trim();
+      sync.gist  = gist.value.trim();
+      sync.auto  = autoC.checked;
+      await saveSyncSettings();
+    };
+    autoC.onchange = remember;
+
+    const row = document.createElement('div'); row.className='inline'; row.style.gap='8px';
+    const bSync = document.createElement('button'); bSync.textContent = T('Sync now');
+    const bUp   = document.createElement('button'); bUp.textContent   = T('Upload (replace cloud)');
+    const bDown = document.createElement('button'); bDown.textContent = T('Download (replace this device)');
+    row.append(bSync, bUp, bDown);
+
+    const guard = fn => async ()=>{
+      await remember();
+      if(!sync.token) return setStatus(T('Enter a token first'), true);
+      setStatus(T('Working…'));
+      try{ await fn(); }
+      catch(err){ setStatus(String(err.message || err), true); }
+    };
+    bUp.onclick = guard(async ()=>{
+      const g = await cloudWrite();
+      gist.value = g.id;
+      setStatus(`${T('Uploaded')} · ${T('Gist')} <code>${g.id}</code>`);
+      toast('Uploaded');
+    });
+    bDown.onclick = guard(async ()=>{
+      if(!sync.gist) throw new Error(T('No gist ID yet — upload once first'));
+      const p = await cloudRead();
+      push(); applyPayload(p);
+      setStatus(`${T('Downloaded')} · ${new Date(p.updated).toLocaleString()}`);
+      toast('Downloaded');
+    });
+    bSync.onclick = guard(async ()=>{
+      if(!sync.gist){                                  // nothing up there yet
+        const g = await cloudWrite(); gist.value = g.id;
+        return setStatus(`${T('Uploaded')} · ${T('Gist')} <code>${g.id}</code>`);
+      }
+      const remote = await cloudRead();
+      const localTime = store.updated || 0;
+      if((remote.updated || 0) > localTime){
+        push(); applyPayload(remote);
+        setStatus(`${T('Downloaded the newer cloud copy')} · ${new Date(remote.updated).toLocaleString()}`);
+      } else {
+        await cloudWrite();
+        setStatus(`${T('Uploaded the newer local copy')} · ${new Date().toLocaleString()}`);
+      }
+    });
+
+    const help = document.createElement('div');
+    help.className = 'hintline';
+    help.innerHTML = T('Create a token at github.com/settings/tokens with only the <b>gist</b> scope. ' +
+      'It is stored in this browser and never leaves it except as an Authorization header to GitHub. ' +
+      'On another device, paste the same token and Gist ID, then press Download.');
+
+    body.append(wrap, row, status, help);
+  });
+};
+
 // ================= clearance checking =================
 let issues = [], showIssues = false;
 
@@ -3691,11 +3869,12 @@ let store = {layouts:{}, versions:[], activeVersion:null, autosave:null, custom:
 let saveTimer=null;
 async function persist(){
   store.custom = custom;
+  store.updated = Date.now();
   try{ await DB.set(KEY, JSON.stringify(store)); }catch(e){}
 }
 function autosave(){
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(()=>{ store.autosave = state; persist(); }, 600);
+  saveTimer = setTimeout(()=>{ store.autosave = state; persist(); scheduleCloudPush(); }, 600);
 }
 // ---------- named versions of the whole plan ----------
 function withState(st, fn){
@@ -3881,6 +4060,7 @@ function demo(){
     const r = await DB.get(KEY);
     if(r && r.value) store = JSON.parse(r.value);
   }catch(e){}
+  await loadSyncSettings();
   custom = store.custom || [];
   if(store.currency){ currency = store.currency; document.getElementById('currency').value = currency; }
   if(store.snapStep > 0){ snapStep = store.snapStep; document.getElementById('snapSize').value = snapStep; }
