@@ -65,14 +65,54 @@
   body.light .toast{color:#fff}
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
+  html{
+    display:flex;align-items:center;justify-content:center;
+    background:#08090b;height:100%;
+  }
+  body{
+    --ar:1.6;                                   /* set by the screen-shape menu */
+    width:min(100vw, calc(100dvh * var(--ar)));
+    height:min(100dvh, calc(100vw / var(--ar)));
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden;
+    box-shadow:0 18px 60px rgba(0,0,0,.55);
+  }
+  body.fill{
+    width:100vw;height:100dvh;border:0;border-radius:0;box-shadow:none;
+  }
+  @media (max-width:900px){
+    body{border-radius:8px}
+    body.fill{border-radius:0}
+  }
+
+  body.narrow{border-radius:8px}
+  body.narrow.fill{border-radius:0}
   body{
     background:var(--ink);color:var(--text);
     font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
     font-size:13px;display:flex;flex-direction:column;overflow:hidden;
   }
-  .bar{
+  #planBar{flex:none;background:var(--panel);border-bottom:1px solid var(--line);position:relative;z-index:80}
+  .groups{display:flex;align-items:center;gap:6px;padding:7px 12px}
+  .gtab{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:7px 12px;
+    color:var(--text);font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;cursor:pointer;
+    display:flex;align-items:center;gap:6px;
+  }
+  .gtab i{font-style:normal;color:var(--muted);font-size:10px}
+  .gtab:hover{border-color:var(--line-hi)}
+  .gtab.active{background:var(--accent);border-color:var(--accent);color:#20160a}
+  .gtab.active i{color:#20160a}
+  .groups button.ghost{
+    font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:7px 10px;
+  }
+  .bar.grp{
+    position:absolute;top:100%;left:10px;z-index:90;
     display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-    padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);
+    padding:10px;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;box-shadow:0 14px 34px rgba(0,0,0,.45);
+    max-width:min(94vw,620px);
   }
   .brand{font-weight:700;letter-spacing:.16em;text-transform:uppercase;font-size:12px;margin-right:6px}
   .brand span{color:var(--accent)}
@@ -112,6 +152,19 @@
     display:inline-block;padding:8px 14px;border-radius:8px;background:var(--accent);color:#20160a;
     font-weight:700;text-decoration:none;font-size:12px;
   }
+  /* On phones the toolbar sits at the bottom, clear of the notch / Dynamic Island,
+     and its menus open upward. The top edge only carries the plan itself. */
+  body.narrow #planBar{
+    order:9;border-bottom:0;border-top:1px solid var(--line);
+  }
+  body.narrow .bar.grp{
+    top:auto;bottom:100%;margin-bottom:6px;
+    box-shadow:0 -14px 34px rgba(0,0,0,.45);
+  }
+  body.narrow.fill{padding-top:env(safe-area-inset-top)}
+  body.narrow .stats{top:calc(8px + env(safe-area-inset-top))}
+  body.narrow #ratioMenu{max-height:60vh;overflow:auto}
+
   #printArea{display:none}
   @media print{
     @page{ size:A4; margin:14mm; }
@@ -140,22 +193,37 @@
     #printArea .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
     #printArea .foot{margin-top:14px;font-size:9px;color:#888;border-top:1px solid #ddd;padding-top:5px}
   }
+  #dock{
+    order:10;flex:none;display:flex;align-items:stretch;
+    background:var(--panel);border-top:1px solid var(--line);
+  }
   .tabs{
-    display:flex;align-items:center;gap:6px;padding:6px 12px 0;
-    background:var(--panel);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:6px;padding:0 12px;flex:1;min-width:0;
   }
   .tab{
-    background:transparent;border:1px solid transparent;border-bottom:0;
-    border-radius:8px 8px 0 0;padding:8px 16px;color:var(--muted);
+    background:transparent;border:0;border-radius:8px;padding:10px 16px;color:var(--muted);
     font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;
-    position:relative;top:1px;
   }
-  .tab:hover{color:var(--text);border-color:transparent}
+  .tab:hover{color:var(--text);background:var(--hover)}
   .tab.active{
-    background:var(--ink);border-color:var(--line);color:var(--text);
-    box-shadow:inset 0 2px 0 var(--accent);
+    background:var(--panel-2);color:var(--text);
+    box-shadow:inset 0 -2px 0 var(--accent);
   }
   .tabhint{color:var(--muted);font-size:11px;padding-right:4px}
+  .ratiowrap{position:relative;display:flex}
+  .ratiowrap .tab i{font-style:normal;font-size:9px;color:var(--muted)}
+  #ratioMenu{
+    display:none;position:absolute;bottom:100%;right:0;margin-bottom:6px;z-index:120;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 12px 30px rgba(0,0,0,.5);padding:5px;min-width:150px;
+  }
+  #ratioMenu.open{display:block}
+  #ratioMenu button{
+    display:block;width:100%;text-align:left;background:transparent;border:0;
+    padding:8px 10px;border-radius:6px;font-size:12px;color:var(--text);cursor:pointer;
+  }
+  #ratioMenu button:hover{background:var(--hover)}
+  #ratioMenu button.on{color:var(--accent);font-weight:700}
   .sheet{display:none;flex:1;min-height:0;flex-direction:column;background:var(--ink)}
   body.light #sheetTable tr.job td:first-child input{color:var(--text)}
   .sheet.open{display:flex}
@@ -272,10 +340,30 @@
     opacity:0;transition:opacity .2s;pointer-events:none;
   }
   .toast.show{opacity:1}
-  #mobileBar{display:none}
+  #mobileBar{
+    display:flex;gap:4px;padding:6px 10px;align-items:center;flex:none;
+    border-left:1px solid var(--line);
+  }
+  #mobileBar button{
+    display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:13px;
+    background:var(--panel-2);border:1px solid var(--line);border-radius:7px;cursor:pointer;
+  }
+  #mobileBar button span{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  #mobileBar button.on{background:var(--accent);border-color:var(--accent);color:#20160a}
+  #mobileBar button.on span{color:#20160a}
+  body.hide-side .side{display:none}
+  body.hide-props .props{display:none}
   @media (max-width:900px){
-    .bar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:6px 10px;gap:6px}
-    .bar::-webkit-scrollbar{height:0}
+    .groups{padding:6px 8px;gap:4px}
+    .gtab{flex:1;justify-content:center;padding:9px 6px;font-size:10px;letter-spacing:.02em}
+    .groups button.ghost{display:none}
+    .bar.grp{
+      left:6px;right:6px;max-width:none;max-height:62vh;overflow-y:auto;
+      flex-wrap:wrap;gap:6px;padding:10px;
+    }
+    .bar.grp button,.bar.grp select,.bar.grp input{min-height:40px;flex:1 1 46%}
+    .bar.grp .sep{display:none}
+    .bar.grp span{flex:0 0 auto}
     .bar .sep{display:none}
     .bar button,.bar input,.bar select{flex:none}
     .tabs{padding:4px 8px 0}
@@ -291,14 +379,15 @@
     .side.open,.props.open{transform:none}
     .hint{display:none}
     .stats{right:8px;top:8px;font-size:10px;padding:6px 8px}
-    #mobileBar{
-      display:flex;gap:4px;padding:6px 8px;background:var(--panel);
-      border-top:1px solid var(--line);flex:none;
-    }
-    #mobileBar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
-      padding:7px 2px;font-size:15px;line-height:1}
-    #mobileBar button span{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-    #mobileBar button.on span{color:inherit}
+    #dock{flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+    .tabs{padding:4px 6px;gap:2px;border-bottom:1px solid var(--line)}
+    .tabs .brand,.tabs .tabhint{display:none}
+    .tab{flex:1;padding:9px 4px;text-align:center;font-size:10px;letter-spacing:.04em}
+    #dock .tab#btnLang,#dock .tab#btnTheme,#dock .tab#btnRatio{flex:0 0 38px;padding:9px 0}
+    #mobileBar{border-left:0;gap:2px;padding:5px 6px}
+    #mobileBar button{flex:1;flex-direction:column;align-items:center;gap:2px;
+      padding:7px 2px;font-size:15px;line-height:1;background:transparent;border:0}
+    #mobileBar button span{font-size:9px}
     .sheetbody{padding:8px}
     #sheetTable{min-width:1000px}
     .sheetbody{overflow-x:auto}
@@ -306,15 +395,81 @@
     .cat{grid-template-columns:1fr 1fr}
     .layer .ico{width:26px;height:26px}
   }
+  body.narrow .groups{padding:6px 8px;gap:4px}
+  body.narrow .gtab{flex:1;justify-content:center;padding:9px 6px;font-size:10px;letter-spacing:.02em}
+  body.narrow .groups button.ghost{display:none}
+  body.narrow .bar.grp{
+      left:6px;right:6px;max-width:none;max-height:62vh;overflow-y:auto;
+      flex-wrap:wrap;gap:6px;padding:10px;
+    }
+  body.narrow .bar.grp button, body.narrow .bar.grp select, body.narrow .bar.grp input{min-height:40px;flex:1 1 46%}
+  body.narrow .bar.grp .sep{display:none}
+  body.narrow .bar.grp span{flex:0 0 auto}
+  body.narrow .bar .sep{display:none}
+  body.narrow .bar button, body.narrow .bar input, body.narrow .bar select{flex:none}
+  body.narrow .tabs{padding:4px 8px 0}
+  body.narrow .tab{padding:7px 12px;font-size:11px}
+  body.narrow .main{flex-direction:row;position:relative}
+  body.narrow .canvaswrap{flex:1;min-height:0}
+  body.narrow .side, body.narrow .props{
+      position:absolute;top:0;bottom:0;width:min(88%,340px);z-index:70;
+      box-shadow:0 0 30px rgba(0,0,0,.4);transition:transform .22s ease;max-height:none;
+    }
+  body.narrow .side{left:0;transform:translateX(-102%)}
+  body.narrow .props{right:0;transform:translateX(102%)}
+  body.narrow .side.open, body.narrow .props.open{transform:none}
+  body.narrow .hint{display:none}
+  body.narrow .stats{right:8px;top:8px;font-size:10px;padding:6px 8px}
+  body.narrow #dock{flex-direction:column;padding-bottom:env(safe-area-inset-bottom)}
+  body.narrow .tabs{padding:4px 6px;gap:2px;border-bottom:1px solid var(--line)}
+  body.narrow .tabs .brand, body.narrow .tabs .tabhint{display:none}
+  body.narrow .tab{flex:1;padding:9px 4px;text-align:center;font-size:10px;letter-spacing:.04em}
+  body.narrow #dock .tab#btnLang, body.narrow #dock .tab#btnTheme, body.narrow #dock .tab#btnRatio{flex:0 0 38px;padding:9px 0}
+  body.narrow #mobileBar{border-left:0;gap:2px;padding:5px 6px}
+  body.narrow #mobileBar button{flex:1;flex-direction:column;align-items:center;gap:2px;
+      padding:7px 2px;font-size:15px;line-height:1;background:transparent;border:0}
+  body.narrow #mobileBar button span{font-size:9px}
+  body.narrow .sheetbody{padding:8px}
+  body.narrow #sheetTable{min-width:1000px}
+  body.narrow .sheetbody{overflow-x:auto}
+  body.narrow .mbox{width:100%;max-height:92vh}
+  body.narrow .cat{grid-template-columns:1fr 1fr}
+  body.narrow .layer .ico{width:26px;height:26px}
+
   @media (max-width:900px) and (display-mode:standalone){ body{padding-bottom:env(safe-area-inset-bottom)} }
 </style>
 
+
+
+<div id="dock">
+<div class="tabs">
+  <div class="brand">Flat<span>·</span>Planner</div>
+  <button class="tab active" id="tabPlan">Planner</button>
+  <button class="tab" id="tabSvc">Services</button>
+  <button class="tab" id="tabList">Shopping list</button>
+  <div style="flex:1"></div>
+  <div id="tabHint" class="tabhint"></div>
+  <button class="tab" id="btnLang" title="Čeština / English">CS</button>
+  <button class="tab" id="btnTheme" title="Light / dark theme">☀</button>
+  <div class="ratiowrap">
+    <button class="tab" id="btnRatio" title="Screen shape">▭ <i>▾</i></button>
+    <div id="ratioMenu">
+      <button data-r="fill">Fill the window</button>
+      <button data-r="1.6">16:10</button>
+      <button data-r="1.7778">16:9</button>
+      <button data-r="0.4615">9:19.5</button>
+      <button data-r="1.4286">10:7</button>
+      <button data-r="1.3333">4:3</button>
+    </div>
+  </div>
+</div>
 <div id="mobileBar">
   <button data-m="side">▤ <span>Palette</span></button>
   <button data-m="props">⚙ <span>Properties</span></button>
   <button data-m="fit">⤢ <span>Fit</span></button>
   <button data-m="undo">↶ <span>Undo</span></button>
   <button data-m="del">✕ <span>Delete</span></button>
+</div>
 </div>
 
 <div id="printArea"></div>
@@ -326,51 +481,53 @@
   </div>
 </div>
 
-<div class="tabs">
-  <div class="brand">Flat<span>·</span>Planner</div>
-  <button class="tab active" id="tabPlan">Planner</button>
-  <button class="tab" id="tabSvc">Services</button>
-  <button class="tab" id="tabList">Shopping list</button>
-  <div style="flex:1"></div>
-  <div id="tabHint" class="tabhint"></div>
-  <button class="tab" id="btnLang" title="Čeština / English">CS</button>
-  <button class="tab" id="btnTheme" title="Light / dark theme">☀</button>
-</div>
+<div id="planBar">
+  <div class="groups">
+    <button class="gtab" data-g="rooms">Rooms <i>▾</i></button>
+    <button class="gtab" data-g="view">View <i>▾</i></button>
+    <button class="gtab" data-g="file">Plan <i>▾</i></button>
+    <div style="flex:1"></div>
+    <button id="btnUndo" class="ghost">Undo</button>
+    <button id="btnDup" class="ghost">Duplicate</button>
+    <button id="btnDel" class="ghost danger">Delete</button>
+  </div>
 
-<div class="bar" id="planBar">
-  <button id="addRoom">+ Room</button>
-  <select id="cornerCount" style="width:78px" title="Number of walls">
-    <option>3</option><option>4</option><option selected>5</option><option>6</option><option>8</option>
-  </select>
-  <button id="addPoly">+ Shaped room</button>
-  <button id="addInner">+ Room inside</button>
-  <div class="sep"></div>
-  <button id="btnGrid" class="on">Grid</button>
-  <button id="btnSnap" class="on">Snap</button>
-  <input id="snapSize" type="number" min="0.5" step="0.5" value="5" title="Snap step in cm" style="width:62px">
-  <span style="color:var(--muted)">cm</span>
-  <button id="btnFit">Fit view</button>
-  <div class="sep"></div>
-  <button id="btnDims" class="on">Dimensions</button>
-  <button id="btnMeasure">Measure</button>
-  <button id="btnDim">Add dimension</button>
-  <div class="sep"></div>
-  <button id="btnLockWalls">Lock all walls</button>
-  <button id="btnUndo" class="ghost">Undo</button>
-  <button id="btnDup" class="ghost">Duplicate</button>
-  <button id="btnDel" class="ghost danger">Delete</button>
-  <div class="sep"></div>
-  <input id="layoutName" placeholder="Plan name" style="width:130px">
-  <button id="btnVersions">Versions…</button>
-  <button id="btnSync">Sync…</button>
-  <span id="verNow" class="tabhint"></span>
-  <div class="sep"></div>
-  <button id="btnExport">Export file</button>
-  <button id="btnImport">Import file</button>
-  <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
-  <button id="btnCheck">Check plan</button>
-  <button id="btnPrint" class="ghost">Print / PDF</button>
-  <button id="btnClear" class="ghost danger">New plan</button>
+  <div class="bar grp" data-g="rooms" style="display:none">
+    <button id="addRoom">+ Room</button>
+    <select id="cornerCount" style="width:78px" title="Number of walls">
+      <option>3</option><option>4</option><option selected>5</option><option>6</option><option>8</option>
+    </select>
+    <button id="addPoly">+ Shaped room</button>
+    <button id="addInner">+ Room inside</button>
+    <div class="sep"></div>
+    <button id="btnLockWalls">Lock all walls</button>
+    <button id="btnCheck">Check plan</button>
+  </div>
+
+  <div class="bar grp" data-g="view" style="display:none">
+    <button id="btnGrid" class="on">Grid</button>
+    <button id="btnSnap" class="on">Snap</button>
+    <input id="snapSize" type="number" min="0.5" step="0.5" value="5" title="Snap step in cm" style="width:62px">
+    <span style="color:var(--muted)">cm</span>
+    <button id="btnFit">Fit view</button>
+    <div class="sep"></div>
+    <button id="btnDims" class="on">Dimensions</button>
+    <button id="btnMeasure">Measure</button>
+    <button id="btnDim">Add dimension</button>
+  </div>
+
+  <div class="bar grp" data-g="file" style="display:none">
+    <input id="layoutName" placeholder="Plan name" style="width:130px">
+    <button id="btnVersions">Versions…</button>
+    <button id="btnSync">Sync…</button>
+    <span id="verNow" class="tabhint"></span>
+    <div class="sep"></div>
+    <button id="btnExport">Export file</button>
+    <button id="btnImport">Import file</button>
+    <input type="file" id="fileIn" accept=".json,application/json" style="display:none">
+    <button id="btnPrint" class="ghost">Print / PDF</button>
+    <button id="btnClear" class="ghost danger">New plan</button>
+  </div>
 </div>
 
 <div id="sheet" class="sheet">
@@ -2359,7 +2516,11 @@ function setTab(t){
     : '';
   if(svc){ ensureSvc(); renderSvcPalette(); renderCircuits(); svcTool=null; svcDraft=null; }
   if(typeof closeDrawers === 'function') closeDrawers();
-  document.getElementById('mobileBar').style.display = list ? 'none' : '';
+  ['side','props','fit','del'].forEach(m=>{
+    const b = document.querySelector(`#mobileBar button[data-m=${m}]`);
+    if(b) b.style.display = list ? 'none' : '';
+  });
+  if(typeof syncDockButtons === 'function') syncDockButtons();
   sel = null; svcSel = svc ? svcSel : null;
   renderProps();
   if(list) renderSheet(); else { resize(); draw(); }
@@ -2372,23 +2533,67 @@ function setTheme(t){
   draw();
 }
 document.getElementById('btnTheme').onclick = ()=> setTheme(theme === 'light' ? 'dark' : 'light');
+const RATIO_LABEL = {'fill':'▭', '1.6':'16:10', '1.7778':'16:9', '0.4615':'9:19.5', '1.4286':'10:7', '1.3333':'4:3'};
+function setRatio(mode){                         // 'fill', or an aspect ratio as a string
+  const fill = (mode === 'fill');
+  document.body.classList.toggle('fill', fill);
+  if(!fill) document.body.style.setProperty('--ar', mode);
+  document.getElementById('btnRatio').innerHTML =
+    (RATIO_LABEL[mode] || '▭') + ' <i>▾</i>';
+  document.querySelectorAll('#ratioMenu button').forEach(b=>
+    b.classList.toggle('on', b.dataset.r === String(mode)));
+  if(typeof store === 'object'){ store.ratio = mode; persist(); }
+  setTimeout(()=>{ updateNarrow(); resize(); }, 60);
+}
+const ratioMenu = document.getElementById('ratioMenu');
+document.getElementById('btnRatio').onclick = e=>{
+  e.stopPropagation();
+  ratioMenu.classList.toggle('open');
+};
+ratioMenu.addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  setRatio(b.dataset.r);
+  ratioMenu.classList.remove('open');
+});
+document.addEventListener('pointerdown', e=>{
+  if(!e.target.closest('.ratiowrap')) ratioMenu.classList.remove('open');
+}, true);
 document.getElementById('btnLang').onclick = ()=> setLang(lang === 'cs' ? 'en' : 'cs');
 // ---------- mobile drawers ----------
-const mobile = () => window.matchMedia('(max-width:900px)').matches;
+const mobile = () => document.body.clientWidth <= 900;
+function updateNarrow(){
+  document.body.classList.toggle('narrow', document.body.clientWidth <= 900);
+}
+new ResizeObserver(updateNarrow).observe(document.body);
 function closeDrawers(){
+  if(!mobile()) return;
   document.querySelectorAll('.side, .props').forEach(el=> el.classList.remove('open'));
   document.querySelectorAll('#mobileBar button').forEach(b=> b.classList.remove('on'));
 }
 function toggleDrawer(which){
+  const btn = document.querySelector(`#mobileBar button[data-m=${which}]`);
+  if(!mobile()){                                   // desktop: collapse the docked panel
+    const cls = which === 'props' ? 'hide-props' : 'hide-side';
+    document.body.classList.toggle(cls);
+    btn.classList.toggle('on', !document.body.classList.contains(cls));
+    store.panels = {side:document.body.classList.contains('hide-side'),
+                    props:document.body.classList.contains('hide-props')};
+    persist(); resize();
+    return;
+  }
   const el = which === 'props'
     ? document.getElementById('props')
     : (activeTab === 'svc' ? document.getElementById('sideSvc') : document.querySelector('.side'));
   const open = el.classList.contains('open');
   closeDrawers();
-  if(!open){
-    el.classList.add('open');
-    document.querySelector(`#mobileBar button[data-m=${which}]`).classList.add('on');
-  }
+  if(!open){ el.classList.add('open'); btn.classList.add('on'); }
+}
+function syncDockButtons(){
+  if(mobile()) return;
+  document.querySelector('#mobileBar button[data-m=side]')
+    .classList.toggle('on', !document.body.classList.contains('hide-side'));
+  document.querySelector('#mobileBar button[data-m=props]')
+    .classList.toggle('on', !document.body.classList.contains('hide-props'));
 }
 document.getElementById('mobileBar').addEventListener('click', e=>{
   const b = e.target.closest('button'); if(!b) return;
@@ -2411,6 +2616,43 @@ document.getElementById('mobileBar').addEventListener('click', e=>{
 });
 // picking a catalogue item on a phone should show the plan again
 document.querySelectorAll('.cat').forEach(c=> c.addEventListener('click', ()=>{ if(mobile()) closeDrawers(); }));
+
+// toolbar menus
+function closeMenus(){
+  document.querySelectorAll('#planBar .grp').forEach(g=> g.style.display='none');
+  document.querySelectorAll('.gtab').forEach(x=> x.classList.remove('active'));
+}
+function openMenu(name){
+  const panel = document.querySelector(`#planBar .grp[data-g=${name}]`);
+  const btn   = document.querySelector(`.gtab[data-g=${name}]`);
+  if(!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  closeMenus();
+  if(isOpen) return;
+  panel.style.display = '';
+  btn.classList.add('active');
+  if(!mobile()){                                   // desktop: sit under its own button
+    const r = btn.getBoundingClientRect(), p = btn.closest('#planBar').getBoundingClientRect();
+    panel.style.left = Math.max(8, r.left - p.left) + 'px';
+  }
+}
+document.querySelector('.groups').addEventListener('click', e=>{
+  const b = e.target.closest('.gtab'); if(!b) return;
+  openMenu(b.dataset.g);
+});
+// a menu closes once you've used it, and when you click elsewhere
+document.querySelectorAll('#planBar .grp').forEach(g=>{
+  g.addEventListener('click', e=>{
+    const b = e.target.closest('button');
+    if(!b) return;
+    if(b.id === 'btnGrid' || b.id === 'btnSnap' || b.id === 'btnDims') return;  // toggles: stay open
+    setTimeout(closeMenus, 0);
+  });
+});
+document.addEventListener('pointerdown', e=>{
+  if(!e.target.closest('#planBar')) closeMenus();
+}, true);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeMenus(); });
 
 document.getElementById('tabPlan').onclick = ()=> setTab('plan');
 document.getElementById('tabSvc').onclick = ()=> setTab('svc');
@@ -4071,6 +4313,14 @@ function demo(){
   ensureLayers(); renderLayers();
   setTab('plan');
   resize(); fit(); renderProps();
+  if(store.panels){
+    document.body.classList.toggle('hide-side', !!store.panels.side);
+    document.body.classList.toggle('hide-props', !!store.panels.props);
+  }
+  syncDockButtons();
+  window.addEventListener('resize', syncDockButtons);
+  setRatio(store.ratio || (window.matchMedia('(max-width:900px)').matches ? 'fill' : '1.6'));
+  updateNarrow();
   if(store.theme === 'light') setTheme('light');
   if(store.lang === 'cs') setLang('cs');
 })();
