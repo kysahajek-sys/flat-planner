@@ -383,7 +383,11 @@
     .tabs{padding:4px 6px;gap:2px;border-bottom:1px solid var(--line)}
     .tabs .brand,.tabs .tabhint{display:none}
     .tab{flex:1;padding:9px 4px;text-align:center;font-size:10px;letter-spacing:.04em}
-    #dock .tab#btnLang,#dock .tab#btnTheme,#dock .tab#btnRatio{flex:0 0 38px;padding:9px 0}
+    #dock .tab#btnLang,#dock .tab#btnTheme{flex:0 0 36px;padding:9px 0;text-align:center}
+    .ratiowrap{flex:0 0 46px}
+    .ratiowrap .tab{width:100%;justify-content:center;padding:9px 0;gap:2px}
+    .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .tabs::-webkit-scrollbar{height:0}
     #mobileBar{border-left:0;gap:2px;padding:5px 6px}
     #mobileBar button{flex:1;flex-direction:column;align-items:center;gap:2px;
       padding:7px 2px;font-size:15px;line-height:1;background:transparent;border:0}
@@ -424,7 +428,12 @@
   body.narrow .tabs{padding:4px 6px;gap:2px;border-bottom:1px solid var(--line)}
   body.narrow .tabs .brand, body.narrow .tabs .tabhint{display:none}
   body.narrow .tab{flex:1;padding:9px 4px;text-align:center;font-size:10px;letter-spacing:.04em}
-  body.narrow #dock .tab#btnLang, body.narrow #dock .tab#btnTheme, body.narrow #dock .tab#btnRatio{flex:0 0 38px;padding:9px 0}
+  body.narrow #dock .tab#btnLang, body.narrow #dock .tab#btnTheme{flex:0 0 36px;padding:9px 0;text-align:center}
+  body.narrow .ratiowrap{flex:0 0 46px}
+  body.narrow .ratiowrap .tab{width:100%;justify-content:center;padding:9px 0;gap:2px}
+  body.narrow .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  body.narrow .tabs::-webkit-scrollbar{height:0}
+  body.narrow #ratioMenu{right:0;left:auto}
   body.narrow #mobileBar{border-left:0;gap:2px;padding:5px 6px}
   body.narrow #mobileBar button{flex:1;flex-direction:column;align-items:center;gap:2px;
       padding:7px 2px;font-size:15px;line-height:1;background:transparent;border:0}
@@ -934,29 +943,7 @@ function snapTargets(){
   const pts = [], segs = [];
   const edge = (a, b) => { segs.push([a, b]); pts.push(a, b); };
 
-  // offset a wall line sideways by `off`
-  const offLine = (a, b, off) => {
-    const len = Math.hypot(b.x-a.x, b.y-a.y) || 1;
-    const d = {x:(b.x-a.x)/len, y:(b.y-a.y)/len};
-    const n = {x:-d.y, y:d.x};
-    return {p:{x:a.x+n.x*off, y:a.y+n.y*off}, d};
-  };
-  // where two offset wall lines meet — the real face corner
-  const cross = (L1, L2) => {
-    const den = L1.d.x*L2.d.y - L1.d.y*L2.d.x;
-    if(Math.abs(den) < 1e-9) return null;                 // parallel walls
-    const t = ((L2.p.x-L1.p.x)*L2.d.y - (L2.p.y-L1.p.y)*L2.d.x)/den;
-    return {x:L1.p.x + L1.d.x*t, y:L1.p.y + L1.d.y*t};
-  };
-  // a room's wall faces as a closed, properly mitred outline
-  const facePoly = (p, off) => {
-    const n = p.length, out = [];
-    for(let i=0;i<n;i++){
-      const prev = p[(i-1+n)%n], cur = p[i], next = p[(i+1)%n];
-      out.push(cross(offLine(prev, cur, off), offLine(cur, next, off)) || {x:cur.x, y:cur.y});
-    }
-    return out;
-  };
+  const facePoly = (p, off) => offsetOutline(p, off);
 
   state.rooms.forEach(r=>{
     const p = roomPts(r);
@@ -1032,20 +1019,49 @@ const wallOf = r => (r && r.wall > 0) ? r.wall : WALL;   // per-room wall thickn
 const roomPts = r => r.pts
   ? r.pts.map(p=>({x:r.x+p.x, y:r.y+p.y}))
   : [{x:r.x,y:r.y},{x:r.x+r.w,y:r.y},{x:r.x+r.w,y:r.y+r.h},{x:r.x,y:r.y+r.h}];
-function roomArea(r){
-  const p = roomPts(r); let a = 0;
+const shoelace = p => {
+  let a = 0;
   for(let i=0;i<p.length;i++){ const q=p[(i+1)%p.length]; a += p[i].x*q.y - q.x*p[i].y; }
   return Math.abs(a)/2;
-}
-function roomPerimeter(r){
-  const p = roomPts(r); let s = 0;
+};
+const perimeterOf = p => {
+  let s = 0;
   for(let i=0;i<p.length;i++){ const q=p[(i+1)%p.length]; s += Math.hypot(q.x-p[i].x, q.y-p[i].y); }
   return s;
+};
+// offset a closed outline sideways, mitring the corners properly
+function offsetOutline(p, off){
+  const line = (a,b)=>{
+    const len = Math.hypot(b.x-a.x, b.y-a.y) || 1;
+    const d = {x:(b.x-a.x)/len, y:(b.y-a.y)/len}, n = {x:-d.y, y:d.x};
+    return {p:{x:a.x+n.x*off, y:a.y+n.y*off}, d};
+  };
+  const cross = (L1,L2)=>{
+    const den = L1.d.x*L2.d.y - L1.d.y*L2.d.x;
+    if(Math.abs(den) < 1e-9) return null;
+    const t = ((L2.p.x-L1.p.x)*L2.d.y - (L2.p.y-L1.p.y)*L2.d.x)/den;
+    return {x:L1.p.x + L1.d.x*t, y:L1.p.y + L1.d.y*t};
+  };
+  const n = p.length, out = [];
+  for(let i=0;i<n;i++){
+    const prev = p[(i-1+n)%n], cur = p[i], next = p[(i+1)%n];
+    out.push(cross(line(prev,cur), line(cur,next)) || {x:cur.x, y:cur.y});
+  }
+  return out;
 }
+// the clear opening inside the walls — what a tape measure reads in the room
+function roomInsidePts(r){
+  const p = roomPts(r), hw = wallOf(r)/2;
+  const a = offsetOutline(p, hw), b = offsetOutline(p, -hw);
+  return shoelace(a) < shoelace(b) ? a : b;
+}
+const roomArea      = r => shoelace(roomInsidePts(r));   // clear floor area
+const roomGrossArea = r => shoelace(roomPts(r));         // including half the walls
+const roomPerimeter = r => perimeterOf(roomInsidePts(r));
 // a room nested inside another shouldn't have its area counted twice
 function roomInside(a, b){
   if(a === b) return false;
-  if(roomArea(a) >= roomArea(b)) return false;
+  if(roomGrossArea(a) >= roomGrossArea(b)) return false;
   const outline = roomPts(b), tol = Math.max(wallOf(a), wallOf(b));  // nested rooms share their host's wall
   const nearEdge = p => {
     for(let i=0;i<outline.length;i++)
@@ -1061,7 +1077,7 @@ function roomChildren(r){
     !state.rooms.some(m => m!==r && m!==c && roomInside(c, m) && roomInside(m, r)));
 }
 function netArea(r){
-  return Math.max(0, roomArea(r) - roomChildren(r).reduce((s,c)=>s+roomArea(c), 0));
+  return Math.max(0, roomArea(r) - roomChildren(r).reduce((s,c)=>s+roomGrossArea(c), 0));
 }
 const totalFloorArea = () => state.rooms.reduce((s,r)=>s+netArea(r), 0);
 
@@ -1160,7 +1176,8 @@ function drawRoom(r){
   ctx.fillText(String(r.name).toUpperCase(), c.x, c.y-fs*0.7);
   ctx.font = `${fs*0.85}px ui-monospace, Menlo, monospace`;
   ctx.fillText(
-    (nested ? `${area} m² ${T('net')}` : `${area} m²`) + (r.pts ? `  ·  ${r.pts.length} ${T('walls')}` : `  ·  ${r.w}×${r.h}`),
+    (nested ? `${area} m² ${T('net')}` : `${area} m²`) +
+    (r.pts ? `  ·  ${r.pts.length} ${T('walls')}` : `  ·  ${Math.round(r.w-wallOf(r))}×${Math.round(r.h-wallOf(r))}`),
     c.x, c.y+fs*0.7);
   if(r.locked) padlock(c.x, c.y - fs*1.9, fs*0.8);
 }
@@ -1652,7 +1669,7 @@ cv.addEventListener('pointermove', e=>{
     const x2 = drag.hx ? snapV(p.x) : o.x+o.w, x1 = drag.hx ? o.x : snapV(p.x);
     const y2 = drag.hy ? snapV(p.y) : o.y+o.h, y1 = drag.hy ? o.y : snapV(p.y);
     o.x=Math.min(x1,x2); o.y=Math.min(y1,y2);
-    o.w=Math.max(60,Math.abs(x2-x1)); o.h=Math.max(60,Math.abs(y2-y1));
+    o.w=Math.max(60+wallOf(o),Math.abs(x2-x1)); o.h=Math.max(60+wallOf(o),Math.abs(y2-y1));
   }
   draw(); renderProps(true);
 });
@@ -1836,7 +1853,8 @@ function addItem(def, pos){
 function addRoom(){
   push();
   const c = centerOfView();
-  const r = {id:nid(), name:'Room '+(state.rooms.length+1), x:snapV(c.x-200), y:snapV(c.y-150), w:400, h:300};
+  const r = {id:nid(), name:'Room '+(state.rooms.length+1), x:snapV(c.x-200), y:snapV(c.y-150),
+             w:400+WALL, h:300+WALL};
   state.rooms.push(r); sel={kind:'room', id:r.id}; drawAll();
 }
 function addPolyRoom(n){
@@ -1857,7 +1875,8 @@ function addInnerRoom(){
   const x0=Math.min(...p.map(q=>q.x)), y0=Math.min(...p.map(q=>q.y));
   const x1=Math.max(...p.map(q=>q.x)), y1=Math.max(...p.map(q=>q.y));
   const w = Math.max(80, Math.round((x1-x0)*0.4/5)*5), h = Math.max(80, Math.round((y1-y0)*0.4/5)*5);
-  const r = {id:nid(), name:'Inner room', inner:true, x:snapV(x1-w-30), y:snapV(y0+30), w, h};
+  const r = {id:nid(), name:'Inner room', inner:true, x:snapV(x1-w-30), y:snapV(y0+30),
+             w:w+WALL, h:h+WALL};
   state.rooms.push(r);            // last in the list = drawn on top of its host
   sel={kind:'room', id:r.id}; drawAll();
 }
@@ -1950,8 +1969,8 @@ function renderProps(valuesOnly){
       <label>Name</label><input data-k="${isRoom?'name':'n'}" value="${(isRoom?o.name:o.n).replace(/"/g,'&quot;')}">
     </div>
     ${o.pts ? '' : `<div class="row">
-      <div class="f"><label>${(!isRoom && isWall(o)) ? 'Length' : 'Width'} cm</label><input data-k="w" type="number" value="${Math.round(o.w)}"></div>
-      <div class="f"><label>${isRoom ? 'Depth' : (isWall(o) ? 'Thickness' : 'Height')} cm</label><input data-k="h" type="number" value="${Math.round(o.h)}"></div>
+      <div class="f"><label>${(!isRoom && isWall(o)) ? 'Length' : 'Width'} cm</label><input data-k="w" type="number" value="${Math.round(isRoom ? o.w - wallOf(o) : o.w)}"></div>
+      <div class="f"><label>${isRoom ? 'Depth' : (isWall(o) ? 'Thickness' : 'Height')} cm</label><input data-k="h" type="number" value="${Math.round(isRoom ? o.h - wallOf(o) : o.h)}"></div>
     </div>`}
     <div class="row">
       <div class="f"><label>X cm</label><input data-k="x" type="number" value="${Math.round(o.x)}"></div>
@@ -1999,7 +2018,9 @@ function renderProps(valuesOnly){
         const v = parseFloat(inp.value);
         const min = (k==='wall') ? 2 : (k==='ceiling') ? 150
                   : (k==='h' && sel.kind==='item' && isWall(o)) ? 2 : 10;
-        if(!isNaN(v)) o[k] = (k==='w'||k==='h') ? Math.max(min,v) : v;
+        if(isNaN(v)) return;
+        if(sel.kind==='room' && (k==='w' || k==='h')) o[k] = Math.max(min, v) + wallOf(o);
+        else o[k] = (k==='w'||k==='h') ? Math.max(min,v) : v;
       }
       draw(); autosave();
     });
